@@ -1,12 +1,13 @@
 """
 main.py
-Fichier principal pour lancer le système
+Fichier principal pour lancer le système multi-agents (3 agents)
 """
 
 from llm_client import OllamaClient
 from coder_agent import CoderAgent
+from reviewer_agent import ReviewerAgent
 from tester_agent_v2 import RealTesterAgent as TesterAgent
-from orchestrator import CodeTestOrchestrator
+from orchestrator_3agents import ThreeAgentOrchestrator
 
 def display_menu():
     """Affiche le menu des exemples"""
@@ -32,6 +33,41 @@ def display_menu():
     
     return examples
 
+def get_multiline_problem():
+    """Permet à l'utilisateur de saisir un problème sur plusieurs lignes"""
+    
+    print("\n" + "="*70)
+    print("📝 DÉCRIS TON PROBLÈME (plusieurs lignes possibles)")
+    print("="*70)
+    print("\n💡 Instructions :")
+    print("  - Tape ton problème sur plusieurs lignes si nécessaire")
+    print("  - Pour terminer : tape une ligne vide (appuie juste sur Entrée)")
+    print("  - Sois le plus précis possible sur ce que tu veux")
+    print("\n" + "─"*70)
+    print("Commence à écrire :\n")
+    
+    lines = []
+    while True:
+        try:
+            line = input()
+            if line.strip() == "":
+                if len(lines) > 0:
+                    break
+                else:
+                    print("⚠️  Tu dois écrire au moins une ligne !")
+                    continue
+            lines.append(line)
+        except EOFError:
+            break
+    
+    problem = "\n".join(lines)
+    
+    print("\n" + "─"*70)
+    print("✅ Problème enregistré !")
+    print("─"*70)
+    
+    return problem
+
 def save_code(code, filename):
     """Sauvegarde le code dans un fichier"""
     try:
@@ -47,13 +83,15 @@ def main():
     """Fonction principale"""
     
     print("\n" + "="*70)
-    print("🤖 CODE & TEST CREW - Système Multi-Agents")
+    print("🤖 CODE GENERATION CREW - Système 3 Agents")
+    print("="*70)
+    print("👥 Agents : Coder → Reviewer → Tester")
     print("="*70)
     
     # 1. Configuration du client LLM
     print("\n⚙️ Configuration du système...")
     
-    model = input("Quel modèle Ollama utiliser ? (défaut: llama3.2) : ").strip()
+    model = input("Quel modèle Ollama utiliser ? (défaut: gemma3:1b) : ").strip()
     if not model:
         model = "gemma3:1b"
     
@@ -75,31 +113,40 @@ def main():
     
     print("✅ Connexion réussie !\n")
     
-    # 2. Création des agents
+    # 2. Création des 3 agents
     print("🔧 Création des agents...")
     coder = CoderAgent(llm)
+    reviewer = ReviewerAgent(llm)
     tester = TesterAgent(llm)
-    print("✅ Agents créés !\n")
+    print("✅ 3 Agents créés : Coder, Reviewer, Tester\n")
     
     # 3. Création de l'orchestrateur
     print("🎭 Création de l'orchestrateur...")
-    crew = CodeTestOrchestrator(coder, tester, max_attempts=6)
+    crew = ThreeAgentOrchestrator(coder, reviewer, tester, max_attempts=3)
     print("✅ Orchestrateur créé !\n")
     
     # 4. Menu des exemples
     examples = display_menu()
     
     # 5. Choix du problème
-    choice = input("\nChoisis un exemple (1-7) ou tape ton propre problème : ").strip()
+    choice = input("\nChoix (1-7 pour exemple, 'm' pour multi-lignes) : ").strip().lower()
     
-    if choice.isdigit() and 1 <= int(choice) <= len(examples):
+    if choice == 'm':
+        problem = get_multiline_problem()
+    elif choice.isdigit() and 1 <= int(choice) <= len(examples):
         problem = examples[int(choice) - 1]
     else:
         problem = choice
     
-    if not problem:
+    if not problem or problem.strip() == "":
         print("❌ Aucun problème fourni. Abandon.")
         return
+    
+    print("\n" + "="*70)
+    print("📋 PROBLÈME À RÉSOUDRE :")
+    print("="*70)
+    print(problem)
+    print("="*70)
     
     # 6. Lancement du système
     result = crew.run(problem)
@@ -136,13 +183,13 @@ def main():
             print("─"*70)
         
         if result.get('last_feedback'):
-            print("\n💬 DERNIER FEEDBACK DU TESTEUR :")
+            print("\n💬 DERNIER FEEDBACK :")
             print("─"*70)
             print(result['last_feedback'])
             print("─"*70)
     
     print("\n" + "="*70)
-    print("👋 Merci d'avoir utilisé Code & Test Crew !")
+    print("👋 Merci d'avoir utilisé Code Generation Crew !")
     print("="*70 + "\n")
 
 if __name__ == "__main__":
