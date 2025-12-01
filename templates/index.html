@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code & Test Crew - Multi-Agent System</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        #requestInput {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        #requestInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #progressLog {
+            height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .log-info { background: #e3f2fd; color: #1976d2; }
+        .log-success { background: #e8f5e9; color: #388e3c; }
+        .log-warning { background: #fff3e0; color: #f57c00; }
+        .log-error { background: #ffebee; color: #d32f2f; }
+        .log-working { background: #f3e5f5; color: #7b1fa2; }
+        .log-separator { height: 2px; background: #ddd; margin: 10px 0; }
+        
+        #codeOutput {
+            height: 400px;
+            overflow-y: auto;
+            background: #263238;
+            color: #aed581;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .status-success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status-failure {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Code & Test Crew</h1>
+            <p>Multi-Agent AI System for Code Generation & Testing</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h2>📝 Input Request</h2>
+                <div class="input-section">
+                    <label for="requestInput">What would you like me to code?</label>
+                    <textarea id="requestInput" rows="4" placeholder="Example: Write a function that returns the factorial of a number">Write a function that returns the factorial of a number</textarea>
+                </div>
+                <button id="startBtn" onclick="startCoding()">Start Coding</button>
+                
+                <h2 style="margin-top: 30px;">📊 Progress Log</h2>
+                <div id="progressLog"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>💻 Generated Code</h2>
+                <div id="codeOutput">// Code will appear here after generation...</div>
+                <div id="statusDiv"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let isRunning = false;
+        
+        socket.on('progress', function(data) {
+            const log = document.getElementById('progressLog');
+            
+            if (data.status === 'separator') {
+                const entry = document.createElement('div');
+                entry.className = 'log-separator';
+                log.appendChild(entry);
+            } else {
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${data.status}`;
+                entry.textContent = data.message;
+                log.appendChild(entry);
+            }
+            
+            log.scrollTop = log.scrollHeight;
+        });
+        
+        socket.on('complete', function(data) {
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').textContent = 'Start Coding';
+            
+            const codeOutput = document.getElementById('codeOutput');
+            const statusDiv = document.getElementById('statusDiv');
+            
+            if (data.success) {
+                codeOutput.textContent = data.code || '// Code generation completed';
+                statusDiv.innerHTML = `<div class="status status-success">✅ Success in ${data.attempts} attempt(s)!</div>`;
+            } else {
+                codeOutput.textContent = data.code || '// Code generation failed after maximum attempts';
+                statusDiv.innerHTML = `<div class="status status-failure">❌ Failed after ${data.attempts} attempts</div>`;
+            }
+        });
+        
+        function startCoding() {
+            if (isRunning) return;
+            
+            const request = document.getElementById('requestInput').value.trim();
+            if (!request) {
+                alert('Please enter a coding request');
+                return;
+            }
+            
+            isRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').textContent = 'Processing...';
+            document.getElementById('progressLog').innerHTML = '';
+            document.getElementById('codeOutput').textContent = '// Processing...';
+            document.getElementById('statusDiv').innerHTML = '';
+            
+            socket.emit('start_coding', { request: request });
+        }
+        
+        // Allow Enter to submit
+        document.getElementById('requestInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                startCoding();
+            }
+        });
+    </script>
+</body>
+</html>
