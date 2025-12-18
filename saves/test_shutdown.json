@@ -1,0 +1,9 @@
+{
+  "prompts": [
+    {
+      "id": 1,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: add_numbers\nPURPOSE: To add two numbers together\nINPUT: Two numeric values (integers or floats)\nOUTPUT: The sum of the two input numbers\nEDGE CASES: Handle both positive and negative numbers.\n```"
+    }
+  ]
+}

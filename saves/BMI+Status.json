@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-12-12T18:37:54.026583",
+  "model": "deepseek-coder:6.7b",
+  "raw_prompt": "Write a function that takes height and weight and tells me if I'm underweight, normal, overweight or obese based on BMI.",
+  "refined_prompt": "```\nFUNCTION: bmi_category\nPURPOSE: To calculate BMI category based on height and weight\nINPUT: height (float), weight (float)\nOUTPUT: A string representing the BMI category (underweight, normal, overweight or obese)\nEDGE CASES: If inputs are not numbers or if they are less than or equal to 0, return an error message.\n```",
+  "code_versions": [
+    {
+      "attempt": 1,
+      "code": "def bmi_category(height: float, weight: float) -> str:\n    \"\"\"\n\n    Parameters:\n        height (float): Height in cm\n        weight (float): Weight in kg\n\n    Returns:\n        str: String representing the BMI category (underweight, normal, overweight or obese)\n    \"\"\"\n    if not isinstance(height, (int, float)) or not isinstance(weight, (int, float)):\n        return \"Error: Inputs must be numbers\"\n\n    if height <= 0 or weight <= 0:\n        return \"Error: Inputs must be greater than 0\"\n\n    bmi = weight / ((height/100)**2)\n\n    if bmi < 18.5:\n        return \"Underweight\"\n    elif 18.5 <= bmi < 25:\n        return \"Normal\"\n    elif 25 <= bmi < 30:\n        return \"Overweight\"\n    else:\n        return \"Obese\"\n\ndef main():\n    height = float(input(\"Enter your height in cm: \"))\n    weight = float(input(\"Enter your weight in kg: \"))\n    print(bmi_category(height, weight))\n\n\nif __name__ == \"__main__\":\n    print(f\"bmi_category(1.75, 70) = {bmi_category(1.75, 70)}\")\n    print(f\"bmi_category(1.80, 90) = {bmi_category(1.80, 90)}\")\n    \n    # Uncomment to run interactive mode:\n    # main()",
+      "timestamp": "2025-12-12 18:36:10"
+    }
+  ],
+  "logs": [
+    {
+      "message": "[18:34:44] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[18:34:44] === Starting Code Generation Workflow ===",
+      "tag": "system"
+    },
+    {
+      "message": "[18:34:44] Model: deepseek-coder:6.7b",
+      "tag": "system"
+    },
+    {
+      "message": "[18:34:44] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[18:35:00] [Refiner] Refinement complete",
+      "tag": "refiner"
+    },
+    {
+      "message": "[18:35:15] [System] Using REFINED prompt",
+      "tag": "success"
+    },
+    {
+      "message": "[18:35:15] \n--- Attempt 1/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[18:36:10] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[18:36:28] [System] Opened in VS Code: /home/mehdi/Desktop/code_generation_crew/outputs/generated_code_20251212_183628.py",
+      "tag": "success"
+    },
+    {
+      "message": "[18:36:38] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[18:36:38] [Flake8] Found 3 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:36:38]   \u2022 Line 28:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:36:38]   \u2022 Line 37:1: W293 blank line contains whitespace",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:36:38]   \u2022 Line 39:13: W292 no newline at end of file",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:37:22] [Tester] All tests passed",
+      "tag": "tester"
+    },
+    {
+      "message": "[18:37:22] ============================================================",
+      "tag": "success"
+    },
+    {
+      "message": "[18:37:22] === SUCCESS! Code generation complete ===",
+      "tag": "success"
+    },
+    {
+      "message": "[18:37:22] Time elapsed: 157.4s",
+      "tag": "success"
+    },
+    {
+      "message": "[18:37:22] ============================================================",
+      "tag": "success"
+    }
+  ],
+  "errors": []
+}

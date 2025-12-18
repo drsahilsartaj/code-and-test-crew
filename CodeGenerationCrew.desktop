@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Code Generation Crew
+Comment=AI-powered Python code generator
+Exec=bash -c "cd ~/Desktop/code_generation_crew && source venv/bin/activate && python main.py"
+Icon=/home/mehdi/Desktop/code_generation_crew/icon.png
+Terminal=true
+Categories=Development;

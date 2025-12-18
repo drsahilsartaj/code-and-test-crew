@@ -1,0 +1,204 @@
+{
+  "prompts": [
+    {
+      "id": 1,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: find_longest_words\nPURPOSE: To identify the longest words in a given phrase.\nINPUT: A string containing one or more space-separated words.\nOUTPUT: A list of strings, where each string is the longest word(s) found in the input phrase.\nEDGE CASES: If there are multiple words with the same maximum length, all these words should be included in the output.\n```"
+    },
+    {
+      "id": 2,
+      "difficulty": "Easy",
+      "prompt": "FUNCTION: email_validation\nPURPOSE: To check if a given string is a valid email address.\nINPUT: A string, the email to be checked.\nOUTPUT: A boolean value indicating whether or not the input string is a valid email address.\nEDGE CASES: The function should handle strings that are empty and those that contain non-alphanumeric characters but are still in an acceptable format (e.g., \"user@domain.\")."
+    },
+    {
+      "id": 3,
+      "difficulty": "Medium",
+      "prompt": "If user wants NEW code (no existing code provided):\n```\nFUNCTION: reverse_string\nPURPOSE: To create a function that reverses a string\nINPUT: A string \nOUTPUT: The reversed string\nEDGE CASES: If the input is not a string, return an error message\n```"
+    },
+    {
+      "id": 4,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: count_vowels\nPURPOSE: To count the number of vowels (a, e, i, o, u) in a given string.\nINPUT: A string containing any characters.\nOUTPUT: An integer representing the count of vowels.\nEDGE CASES: If the input is not a string or if it's an empty string, return 0.\n```"
+    },
+    {
+      "id": 5,
+      "difficulty": "Medium",
+      "prompt": "EXISTING CODE (DO NOT MODIFY UNLESS SPECIFIED):\r\n```python\r\ndef is_prime(n: int) -> bool:\r\n    \"\"\"Check if a number is prime.\"\"\"\r\n    if n <= 1:\r\n        return False\r\n    elif n == 2:\r\n        return True\r<｜begin▁of▁sentence｜>\r\n    else:\r\n        for i in range(2, int(n**0.5) + 1):\r\n            if n % i == 0:\r\n                return False\r\n        return True\r\n\r\ndef main():\r\n    n = int(input(\"Enter a number: \"))\r\n    result = is_prime(n)\r\n    print(f\"Is {n} prime? {result}\")\r\n\r\nif __name__ == \"__main__\":\r\n    main()\r\n```\r\n\r\nREQUESTED CHANGES ONLY:\r\n- Modify the existing code to include an infinite loop that asks for a new number and checks if it's prime. If the number is not prime, the program should print out '{n} is not prime'. If the number is prime, the program should print out '{n} is prime'.\r\n- The main function should be modified to include an infinite loop that asks for a new integer input from the user and checks if it's prime. It should continue asking until the user manually stops the execution of the program. \r\n\r\nCREATE NEW:\r\n- Function/program purpose: This program is used to check if a number is prime or not in an infinite loop. The user can provide any integer input, and the program will tell whether it's prime or not until the user manually stops the execution of the program.\r\n- Input parameters: An integer from the user.\r\n- Expected output: A message indicating if the number is prime or not.\r\n- Special requirements: The code should be in Python and include an infinite loop that asks for a new number input until the user manually stops it.\r\n- Edge cases: If the user enters 1, which is neither prime nor composite, the program should print '1 is not prime'. If the user enters 2, the program should print '2 is prime'. For negative numbers and zero, the program should handle them appropriately (e.g., they are not considered prime)."
+    },
+    {
+      "id": 6,
+      "difficulty": "Medium",
+      "prompt": "MODIFICATION TASK\n\nEXISTING CODE TO MODIFY:\n```python\ndef is_prime(n: int) -> bool:\r\n    \"\"\"Check if a number is prime.\"\"\"\r\n    if n < 2:\r\n        return False\r\n    for i in range(2, int(n**0.5) + 1):\r\n        if n % i == 0:\r\n            return False\r\n    return True\r\n\r\ndef main():\r\n    n = input(\"Enter a positive integer: \")\r\n    result = is_prime(int(n))\r\n    print(f\"Is {n} prime? {result}\")\r\n\r\nif __name__ == \"__main__\":\r\n    main()\n```\n\nCHANGES REQUESTED:\n1. Add endless while True loop in main() that keeps asking for input\n2. Add try/except to handle invalid input like letters\n3. Handle negative numbers with appropriate error message\n\nCRITICAL RULES FOR IMPLEMENTATION:\n- Use while True: for the endless loop\n- Use print() to show results, NOT return (return exits the loop!)\n- Use try/except ValueError to catch non-numeric input\n- Check if number < 0 or < 2 and show error message\n- Keep the original is_prime() (or other core function) unchanged"
+    },
+    {
+      "id": 7,
+      "difficulty": "Medium",
+      "prompt": "If user wants NEW code (no existing code provided):\n```\nFUNCTION: find_maximum\nPURPOSE: To find the maximum value in a list of numbers\nINPUT: A list of numbers\nOUTPUT: The maximum number from the input list\nEDGE CASES: If the input list is empty, return None.\n```"
+    },
+    {
+      "id": 8,
+      "difficulty": "Medium",
+      "prompt": "If user wants NEW code (no existing code provided):\n```\nFUNCTION: is_prime\nPURPOSE: To check if a number is prime\nINPUT: A positive integer n\nOUTPUT: True if the number is prime, False otherwise\nEDGE CASES: For numbers less than 2, return False as they are not considered prime.\n```"
+    },
+    {
+      "id": 9,
+      "difficulty": "Medium",
+      "prompt": "\"Create a function that takes an integer as input from the user and determines if it is prime or not.\""
+    },
+    {
+      "id": 10,
+      "difficulty": "Medium",
+      "prompt": "If user wants NEW code (no existing code provided):\n```\nFUNCTION: count_vowels\nPURPOSE: Counts the number of vowels in a given string\nINPUT: A string\nOUTPUT: An integer representing the number of vowels in the string\nEDGE CASES: If the input is not a string, return an error message.\n```"
+    },
+    {
+      "id": 11,
+      "difficulty": "Medium",
+      "prompt": "The function `is_prime(n: int) -> bool` should check if an integer number is prime or not. \n\nExpected input types and parameters are an integer `n` which represents the number to be checked.\n\nThe expected output/return value of this function is a boolean indicating whether the given number is prime (True) or not (False).\n\nEdge cases that need to be handled include:\n- If `n` is less than or equal to 1, it's not considered as a prime number so the function should return False.\n- If `n` equals 2, it's a prime number so the function should return True.\n- For any other positive integer `n`, the function needs to check if there exists an integer from 2 up to square root of n that divides evenly into `n` (without leaving a remainder). If such a number is found, it means `n` is not prime and the function should return False. Otherwise, `n` is prime and the function should return True."
+    },
+    {
+      "id": 12,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: add_numbers\nPURPOSE: To add two numbers together\nINPUT: Two numeric values (integers or floats)\nOUTPUT: The sum of the two input numbers\nEDGE CASES: Handle both positive and negative numbers. If inputs are not numbers, raise a TypeError.\n```"
+    },
+    {
+      "id": 13,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: is_even\nPURPOSE: To determine if a number is even\nINPUT: An integer\nOUTPUT: Boolean - True if the number is even, False if odd\nEDGE CASES: Handle negative numbers correctly. Zero should return True.\n```"
+    },
+    {
+      "id": 14,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: calculate_square\nPURPOSE: To calculate the square of a number\nINPUT: A numeric value (integer or float)\nOUTPUT: The square of the input number (n * n)\nEDGE CASES: Handle negative numbers, zero, and decimal values correctly.\n```"
+    },
+    {
+      "id": 15,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: get_absolute_value\nPURPOSE: To return the absolute value of a number\nINPUT: A numeric value (integer or float)\nOUTPUT: The absolute (positive) value of the input\nEDGE CASES: Positive numbers return unchanged. Negative numbers return positive equivalent. Zero returns zero.\n```"
+    },
+    {
+      "id": 16,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: celsius_to_fahrenheit\nPURPOSE: To convert temperature from Celsius to Fahrenheit\nINPUT: A numeric value representing degrees Celsius\nOUTPUT: The equivalent temperature in Fahrenheit using formula: (C * 9/5) + 32\nEDGE CASES: Handle negative temperatures, zero, and decimal values.\n```"
+    },
+    {
+      "id": 17,
+      "difficulty": "Easy",
+      "prompt": "```\nFUNCTION: multiply_numbers\nPURPOSE: To multiply two numbers\nINPUT: Two numeric values (integers or floats)\nOUTPUT: The product of the two input numbers\nEDGE CASES: Multiplication by zero returns zero. Handle negative numbers correctly.\n```"
+    },
+    {
+      "id": 18,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: calculate_factorial\nPURPOSE: To calculate the factorial of a non-negative integer\nINPUT: A non-negative integer n\nOUTPUT: The factorial n! (n * (n-1) * (n-2) * ... * 1)\nEDGE CASES: 0! = 1. For negative numbers, raise ValueError. For large numbers (n > 20), be aware of performance.\n```"
+    },
+    {
+      "id": 19,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: is_palindrome\nPURPOSE: To check if a string reads the same forwards and backwards\nINPUT: A string\nOUTPUT: Boolean - True if palindrome, False otherwise\nEDGE CASES: Comparison should be case-insensitive. Ignore spaces and punctuation. Empty string and single character are palindromes.\n```"
+    },
+    {
+      "id": 20,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: find_minimum\nPURPOSE: To find the smallest value in a list\nINPUT: A list of numeric values (integers or floats)\nOUTPUT: The minimum value from the list\nEDGE CASES: Empty list should raise ValueError. Single element list returns that element. Handle negative numbers.\n```"
+    },
+    {
+      "id": 21,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: calculate_sum\nPURPOSE: To calculate the sum of all numbers in a list\nINPUT: A list of numeric values\nOUTPUT: The sum of all elements in the list\nEDGE CASES: Empty list returns 0. List with single element returns that element. Handle negative numbers.\n```"
+    },
+    {
+      "id": 22,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: calculate_average\nPURPOSE: To calculate the arithmetic mean of numbers in a list\nINPUT: A list of numeric values\nOUTPUT: The average (sum divided by count) as a float\nEDGE CASES: Empty list should raise ValueError. Handle integer division properly to return float.\n```"
+    },
+    {
+      "id": 23,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: remove_duplicates\nPURPOSE: To remove duplicate elements from a list while preserving order\nINPUT: A list containing any elements\nOUTPUT: A new list with duplicates removed, maintaining original order of first occurrence\nEDGE CASES: Empty list returns empty list. List with no duplicates returns unchanged. Preserve order of first appearance.\n```"
+    },
+    {
+      "id": 24,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: find_second_largest\nPURPOSE: To find the second largest number in a list\nINPUT: A list of numeric values\nOUTPUT: The second largest value\nEDGE CASES: List with fewer than 2 unique elements should raise ValueError. Handle duplicates correctly.\n```"
+    },
+    {
+      "id": 25,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: count_words\nPURPOSE: To count the number of words in a string\nINPUT: A string containing words separated by spaces\nOUTPUT: An integer count of words\nEDGE CASES: Multiple spaces between words count as one separator. Empty string returns 0. Leading/trailing spaces ignored.\n```"
+    },
+    {
+      "id": 26,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: bubble_sort\nPURPOSE: To sort a list using the bubble sort algorithm\nINPUT: A list of comparable elements (typically numbers)\nOUTPUT: A new sorted list in ascending order\nEDGE CASES: Empty list returns empty list. Single element list returns unchanged. Already sorted list should still work.\n```"
+    },
+    {
+      "id": 27,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: find_primes_below_n\nPURPOSE: To find all prime numbers less than a given number\nINPUT: A positive integer n\nOUTPUT: A list of all prime numbers less than n\nEDGE CASES: If n <= 2, return empty list. Use efficient algorithm like Sieve of Eratosthenes for large n.\n```"
+    },
+    {
+      "id": 28,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: gcd\nPURPOSE: To calculate the Greatest Common Divisor of two numbers using Euclidean algorithm\nINPUT: Two positive integers\nOUTPUT: The GCD (largest number that divides both inputs)\nEDGE CASES: GCD(a, 0) = a. GCD(0, b) = b. Both numbers zero should raise ValueError. Handle negative inputs by using absolute values.\n```"
+    },
+    {
+      "id": 29,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: lcm\nPURPOSE: To calculate the Least Common Multiple of two numbers\nINPUT: Two positive integers\nOUTPUT: The LCM (smallest number that is a multiple of both inputs)\nEDGE CASES: Use formula: LCM(a,b) = (a*b) / GCD(a,b). Handle zero inputs. Both numbers zero should raise ValueError.\n```"
+    },
+    {
+      "id": 30,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: binary_to_decimal\nPURPOSE: To convert a binary string to its decimal equivalent\nINPUT: A string containing only '0' and '1' characters\nOUTPUT: An integer representing the decimal value\nEDGE CASES: Empty string returns 0. Invalid characters should raise ValueError. Leading zeros are allowed.\n```"
+    },
+    {
+      "id": 31,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: flatten_list\nPURPOSE: To flatten a nested list structure into a single-level list\nINPUT: A list that may contain nested lists of any depth\nOUTPUT: A flat list containing all elements in order\nEDGE CASES: Empty list returns empty list. Handle deeply nested structures. Preserve element order.\n```"
+    },
+    {
+      "id": 32,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: roman_to_integer\nPURPOSE: To convert a Roman numeral string to its integer value\nINPUT: A string containing valid Roman numeral characters (I, V, X, L, C, D, M)\nOUTPUT: The integer equivalent\nEDGE CASES: Handle subtractive notation (IV=4, IX=9, XL=40, XC=90, CD=400, CM=900). Invalid characters should raise ValueError.\n```"
+    },
+    {
+      "id": 33,
+      "difficulty": "Very Hard",
+      "prompt": "```\nFUNCTION: quicksort\nPURPOSE: To sort a list using the quicksort algorithm (divide and conquer)\nINPUT: A list of comparable elements\nOUTPUT: A sorted list in ascending order\nEDGE CASES: Empty list returns empty list. Use pivot selection (first, last, or median). Handle duplicates. Implement recursively.\n```"
+    },
+    {
+      "id": 34,
+      "difficulty": "Very Hard",
+      "prompt": "```\nFUNCTION: merge_sort\nPURPOSE: To sort a list using the merge sort algorithm\nINPUT: A list of comparable elements\nOUTPUT: A sorted list in ascending order\nEDGE CASES: Empty list returns empty list. Implement divide-and-conquer recursively. Properly merge two sorted halves.\n```"
+    },
+    {
+      "id": 35,
+      "difficulty": "Very Hard",
+      "prompt": "```\nFUNCTION: are_parentheses_balanced\nPURPOSE: To check if parentheses/brackets in a string are properly balanced\nINPUT: A string containing parentheses (), brackets [], and braces {}\nOUTPUT: Boolean - True if all opening symbols have matching closing symbols in correct order\nEDGE CASES: Use stack data structure. Empty string returns True. Must match types: ( with ), [ with ], { with }.\n```"
+    },
+    {
+      "id": 36,
+      "difficulty": "Very Hard",
+      "prompt": "```\nFUNCTION: fibonacci_memoization\nPURPOSE: To calculate the nth Fibonacci number using memoization for efficiency\nINPUT: A non-negative integer n\nOUTPUT: The nth number in the Fibonacci sequence\nEDGE CASES: F(0)=0, F(1)=1. Use dictionary or cache to store computed values. Handle large n efficiently (avoid stack overflow).\n```"
+    },
+    {
+      "id": 37,
+      "difficulty": "Very Hard",
+      "prompt": "```\nFUNCTION: longest_common_subsequence\nPURPOSE: To find the length of the longest common subsequence between two strings\nINPUT: Two strings\nOUTPUT: An integer representing the length of the LCS\nEDGE CASES: Empty string returns 0. Use dynamic programming. Subsequence doesn't need to be contiguous.\n```"
+    },
+    {
+      "id": 38,
+      "difficulty": "Hard",
+      "prompt": "```\nFUNCTION: find_missing_number\nPURPOSE: To find the missing number in a sequence from 1 to n\nINPUT: A list containing n-1 numbers from the range 1 to n\nOUTPUT: The single missing number\nEDGE CASES: Use sum formula approach: expected_sum - actual_sum. List must contain exactly n-1 unique numbers.\n```"
+    },
+    {
+      "id": 39,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: is_all_digits\nPURPOSE: To check if a string contains only numeric digits\nINPUT: A string\nOUTPUT: Boolean - True if all characters are digits (0-9), False otherwise\nEDGE CASES: Empty string returns False. Strings with decimal points return False. Negative signs return False.\n```"
+    },
+    {
+      "id": 40,
+      "difficulty": "Medium",
+      "prompt": "```\nFUNCTION: to_uppercase\nPURPOSE: To convert all characters in a string to uppercase\nINPUT: A string\nOUTPUT: The string with all alphabetic characters converted to uppercase\nEDGE CASES: Non-alphabetic characters remain unchanged. Empty string returns empty string.\n```"
+    }
+  ]
+}

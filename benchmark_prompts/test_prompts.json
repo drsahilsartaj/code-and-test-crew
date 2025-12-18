@@ -1,0 +1,220 @@
+{
+  "prompts": [
+    {
+      "id": 1,
+      "difficulty": "Easy",
+      "prompt": "create a function that adds two numbers",
+      "expected_behavior": "Returns sum of two numbers"
+    },
+    {
+      "id": 2,
+      "difficulty": "Easy",
+      "prompt": "create a function that checks if a number is even",
+      "expected_behavior": "Returns True if even, False if odd"
+    },
+    {
+      "id": 3,
+      "difficulty": "Easy",
+      "prompt": "create a function that reverses a string",
+      "expected_behavior": "Returns reversed string"
+    },
+    {
+      "id": 4,
+      "difficulty": "Easy",
+      "prompt": "create a function that checks if a number is odd",
+      "expected_behavior": "Returns True if odd, False if even"
+    },
+    {
+      "id": 5,
+      "difficulty": "Easy",
+      "prompt": "create a function that calculates the square of a number",
+      "expected_behavior": "Returns n * n"
+    },
+    {
+      "id": 6,
+      "difficulty": "Easy",
+      "prompt": "create a function that returns the absolute value of a number",
+      "expected_behavior": "Returns positive value"
+    },
+    {
+      "id": 7,
+      "difficulty": "Easy",
+      "prompt": "create a function that converts celsius to fahrenheit",
+      "expected_behavior": "Returns (celsius * 9/5) + 32"
+    },
+    {
+      "id": 8,
+      "difficulty": "Easy",
+      "prompt": "create a function that finds the length of a string",
+      "expected_behavior": "Returns number of characters"
+    },
+    {
+      "id": 9,
+      "difficulty": "Easy",
+      "prompt": "create a function that checks if a string is empty",
+      "expected_behavior": "Returns True if empty, False otherwise"
+    },
+    {
+      "id": 10,
+      "difficulty": "Easy",
+      "prompt": "create a function that multiplies two numbers",
+      "expected_behavior": "Returns product of two numbers"
+    },
+    {
+      "id": 11,
+      "difficulty": "Medium",
+      "prompt": "create a function that calculates the factorial of a number",
+      "expected_behavior": "Returns n! (e.g., 5! = 120)"
+    },
+    {
+      "id": 12,
+      "difficulty": "Medium",
+      "prompt": "create a function that counts vowels in a string",
+      "expected_behavior": "Returns count of a, e, i, o, u"
+    },
+    {
+      "id": 13,
+      "difficulty": "Medium",
+      "prompt": "create a function that checks if a string is a palindrome",
+      "expected_behavior": "Returns True if string reads same forwards and backwards"
+    },
+    {
+      "id": 14,
+      "difficulty": "Medium",
+      "prompt": "create a function that finds the maximum value in a list",
+      "expected_behavior": "Returns largest number in list"
+    },
+    {
+      "id": 15,
+      "difficulty": "Medium",
+      "prompt": "create a function that finds the minimum value in a list",
+      "expected_behavior": "Returns smallest number in list"
+    },
+    {
+      "id": 16,
+      "difficulty": "Medium",
+      "prompt": "create a function that calculates the sum of all numbers in a list",
+      "expected_behavior": "Returns total sum"
+    },
+    {
+      "id": 17,
+      "difficulty": "Medium",
+      "prompt": "create a function that calculates the average of numbers in a list",
+      "expected_behavior": "Returns mean value"
+    },
+    {
+      "id": 18,
+      "difficulty": "Medium",
+      "prompt": "create a function that checks if a number is prime",
+      "expected_behavior": "Returns True if prime, False otherwise"
+    },
+    {
+      "id": 19,
+      "difficulty": "Medium",
+      "prompt": "create a function that counts the occurrences of a character in a string",
+      "expected_behavior": "Returns count of specific character"
+    },
+    {
+      "id": 20,
+      "difficulty": "Medium",
+      "prompt": "create a function that removes duplicates from a list",
+      "expected_behavior": "Returns list with unique elements only"
+    },
+    {
+      "id": 21,
+      "difficulty": "Medium",
+      "prompt": "create a function that checks if a string contains only digits",
+      "expected_behavior": "Returns True if all characters are digits"
+    },
+    {
+      "id": 22,
+      "difficulty": "Medium",
+      "prompt": "create a function that finds the second largest number in a list",
+      "expected_behavior": "Returns second highest value"
+    },
+    {
+      "id": 23,
+      "difficulty": "Medium",
+      "prompt": "create a function that counts words in a string",
+      "expected_behavior": "Returns number of words"
+    },
+    {
+      "id": 24,
+      "difficulty": "Medium",
+      "prompt": "create a function that converts a string to uppercase",
+      "expected_behavior": "Returns string in all caps"
+    },
+    {
+      "id": 25,
+      "difficulty": "Medium",
+      "prompt": "create a function that finds the longest word in a string",
+      "expected_behavior": "Returns the longest word"
+    },
+    {
+      "id": 26,
+      "difficulty": "Hard",
+      "prompt": "create a function that checks if a string is a valid email address",
+      "expected_behavior": "Returns True if valid email format"
+    },
+    {
+      "id": 27,
+      "difficulty": "Hard",
+      "prompt": "create a function that sorts a list using bubble sort",
+      "expected_behavior": "Returns sorted list"
+    },
+    {
+      "id": 28,
+      "difficulty": "Hard",
+      "prompt": "create a function that finds all prime numbers less than n",
+      "expected_behavior": "Returns list of primes"
+    },
+    {
+      "id": 29,
+      "difficulty": "Hard",
+      "prompt": "create a function that finds the greatest common divisor of two numbers",
+      "expected_behavior": "Returns GCD"
+    },
+    {
+      "id": 30,
+      "difficulty": "Hard",
+      "prompt": "create a function that finds the least common multiple of two numbers",
+      "expected_behavior": "Returns LCM"
+    },
+    {
+      "id": 31,
+      "difficulty": "Hard",
+      "prompt": "create a function that converts a binary string to decimal",
+      "expected_behavior": "Returns decimal integer"
+    },
+    {
+      "id": 32,
+      "difficulty": "Hard",
+      "prompt": "create a function that flattens a nested list",
+      "expected_behavior": "Returns flat list from nested structure"
+    },
+    {
+      "id": 33,
+      "difficulty": "Very Hard",
+      "prompt": "create a function that implements quicksort algorithm",
+      "expected_behavior": "Returns sorted list"
+    },
+    {
+      "id": 34,
+      "difficulty": "Very Hard",
+      "prompt": "create a function that implements merge sort algorithm",
+      "expected_behavior": "Returns sorted list"
+    },
+    {
+      "id": 35,
+      "difficulty": "Very Hard",
+      "prompt": "create a function that checks if parentheses in a string are balanced",
+      "expected_behavior": "Returns True if balanced"
+    },
+    {
+      "id": 36,
+      "difficulty": "Very Hard",
+      "prompt": "create a function that finds the nth fibonacci number using memoization",
+      "expected_behavior": "Returns nth fibonacci efficiently"
+    }
+  ]
+}
