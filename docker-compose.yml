@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  code-generation-crew:
+    build: .
+    container_name: code-gen-crew
+    volumes:
+      - ./outputs:/app/outputs
+      - ./saves:/app/saves
+      - ./logs:/app/logs
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - PULL_CODELLAMA=${PULL_CODELLAMA:-false}
+      - PULL_QWEN=${PULL_QWEN:-false}
+    network_mode: host
+    stdin_open: true
+    tty: true
+
+volumes:
+  ollama-data:

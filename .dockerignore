@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.git/
+.gitignore
+outputs/generated_code_*.py
+logs/*.log
+*.swp
+*.swo
+.vscode/
+.idea/
+.DS_Store

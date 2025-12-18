@@ -38,6 +38,36 @@ python main.py
 ```
 
 ---
+---
+
+## 🐳 Docker Quick Start (Easiest Way!)
+
+**No installation needed - just Docker!**
+```bash
+# Clone repository
+git clone https://github.com/drsahilsartaj/code-and-test-crew.git
+cd code-and-test-crew
+
+# Run with default model (DeepSeek 6.7B)
+docker-compose up --build
+
+# Run with all models (optional)
+PULL_CODELLAMA=true PULL_QWEN=true docker-compose up --build
+```
+
+**What happens:**
+- ✅ Auto-installs Python, Ollama, dependencies
+- ✅ Downloads AI model(s)
+- ✅ Launches GUI
+- ✅ Works on Linux/Mac/Windows
+
+**Models:**
+- Default: DeepSeek 6.7B (3.8GB)
+- Optional: Add `PULL_CODELLAMA=true` for CodeLlama 7B
+- Optional: Add `PULL_QWEN=true` for Qwen 32B (needs 18GB RAM)
+
+---
+
 
 ## 📊 Benchmark Results
 
