@@ -294,14 +294,19 @@ Our system uses four specialized AI agents that collaborate through feedback loo
 
 ## Development Environment
 
-This project was developed and tested on two laptops:
+This project was developed and tested on three laptops:
 
 ### Laptop 1: Lenovo ThinkPad X280
 - **CPU**: Intel Core i5-8th Gen vPro
 - **RAM**: 8 GB DDR4
 - **OS**: Linux Mint
 
-### Laptop 2: Lenovo ThinkPad P14s Gen 5 AMD
+### Laptop 2: MacBook Air M3 (2024)
+- **Chip**: Apple M3
+- **RAM**: 16 GB
+- **OS**: macOS Tahoe 26.2
+
+### Laptop 3: Lenovo ThinkPad P14s Gen 5 AMD
 - **CPU**: AMD Ryzen 7 PRO 8840HS
 - **RAM**: 32 GB DDR5
 - **OS**: Linux Mint 22
@@ -709,12 +714,12 @@ Academic project - CNAM Paris
 ---
 
 ## Authors
-**Mehdi Amine DJERBOUA**, Ali TALEB, Sahil SARTAJ
+**Mehdi Amine DJERBOUA**, **Sahil SARTAJ**, *Ali TALEB*
 
 **Course**: USEEW2 - Generative AI for Advanced Automation 
 **Instructor**: Dr. Fehmi Ben Abdesslem 
 **Institution**: CNAM Paris - Master 2 AI for Connected Industry 
-**Year**: 2024-2025
+**Year**: 2025-2026
 
 ---
 
