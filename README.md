@@ -716,9 +716,9 @@ Academic project - CNAM Paris
 ## Authors
 **Mehdi Amine DJERBOUA**, **Sahil SARTAJ**, *Ali TALEB*
 
-**Course**: USEEW2 - Generative AI for Advanced Automation 
-**Instructor**: Dr. Fehmi Ben Abdesslem 
-**Institution**: CNAM Paris - Master 2 AI for Connected Industry 
+**Course**: USEEW2 - Generative AI for Advanced Automation <br>
+**Instructor**: Dr. Fehmi Ben Abdesslem <br>
+**Institution**: CNAM Paris - Master 2 AI for Connected Industry <br>
 **Year**: 2025-2026
 
 ---
