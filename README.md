@@ -115,9 +115,9 @@ chmod +x setup.sh
 ```
 
 The `setup.sh` script will:
-1. ✅ Start Ollama in Docker
-2. ✅ Pull the default model (deepseek-coder:6.7b)
-3. ✅ Detect if Ollama is already running locally
+1. Start Ollama in Docker
+2. Pull the default model (deepseek-coder:6.7b)
+3. Detect if Ollama is already running locally
 
 ### After Setup
 ```bash
@@ -169,7 +169,7 @@ docker compose down
 
 **Zero installation required** - just open in your browser!
 
-> 🚧 **Status**: Under Development
+> **Status**: Under Development
 
 ### Features (Planned)
 - Same functionality as desktop app
@@ -187,20 +187,20 @@ docker compose down
 
 ---
 
-## 📋 System Requirements Summary
+## System Requirements Summary
 
 | Component | Option 1 (Local) | Option 2 (Docker) | Option 3 (Web) |
 |-----------|------------------|-------------------|----------------|
-| Python 3.12+ | ✅ Required | ✅ Required | ❌ Not needed |
-| Tkinter | ✅ Required | ✅ Required | ❌ Not needed |
-| Ollama | ✅ Install locally | ✅ Runs in Docker | ❌ Cloud-hosted |
-| Docker | ❌ Not needed | ✅ Required | ❌ Not needed |
+| Python 3.12+ | Required | Required | Not needed |
+| Tkinter | Required | Required | Not needed |
+| Ollama | Install locally | Runs in Docker | Cloud-hosted |
+| Docker | Not needed | Required | Not needed |
 | RAM | 8 GB+ | 8 GB+ | Any |
 | Disk Space | ~5 GB | ~5 GB | None |
 
 ---
 
-## ✅ Verify Your Installation
+## Verify Your Installation
 
 After setup, verify everything works:
 
@@ -223,7 +223,7 @@ python main.py
 
 ---
 
-## 📊 Benchmark Results
+## Benchmark Results
 
 We evaluated the system using two different benchmark approaches to test different aspects of agent collaboration.
 
@@ -264,7 +264,7 @@ python BENCHMARK.py
 
 ---
 
-## 🤖 The Four Agents
+## The Four Agents
 
 Our system uses four specialized AI agents that collaborate through feedback loops:
 
@@ -323,7 +323,7 @@ sudo apt install python3.12 python3.12-venv python3-tk git
 
 ---
 
-## 🔧 Detailed Installation Reference
+## Detailed Installation Reference
 
 > **Note**: See [Quick Start](#-quick-start---choose-your-installation-method) above for step-by-step setup guides.
 
@@ -389,7 +389,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 ```
 code_generation_crew/
 ├── README.md                # This file
