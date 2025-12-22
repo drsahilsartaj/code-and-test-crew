@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+genai/
+gui/
+benchmark_results/
+outputs/
+saves/

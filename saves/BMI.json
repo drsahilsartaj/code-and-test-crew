@@ -1,0 +1,131 @@
+{
+  "timestamp": "2025-12-12T18:25:53.820819",
+  "model": "deepseek-coder:6.7b",
+  "raw_prompt": "Create a function that calculates my BMI from height in centimeters and weight",
+  "refined_prompt": "```\nFUNCTION: calculate_BMI\nPURPOSE: To compute Body Mass Index (BMI) based on height in centimeters and weight.\nINPUT: Height - a float representing the user's height in centimeters, Weight - an integer representing the user's weight in kilograms.\nOUTPUT: A float that represents the calculated BMI value.\nEDGE CASES: If the input values are not valid (e.g., negative or zero), handle them by returning a specific error message.\n```",
+  "code_versions": [
+    {
+      "attempt": 1,
+      "code": "def calculate_BMI(height: float, weight: int) -> float:\n    \"\"\"\n\n    Args:\n        height (float): The user's height in centimeters.\n        weight (int): The user's weight in kilograms.\n\n    Returns:\n        float: The calculated BMI value.\n    \"\"\"\n    if not isinstance(height, (int, float)) or not isinstance(weight, int) or height <= 0 or weight <= 0:\n        return \"Error: Invalid input values.\"\n\n    # Convert height from cm to meters\n    height_in_meters = height / 100.0\n\n    # Calculate BMI\n    bmi = weight / (height_in_meters ** 2)\n\n    return round(bmi, 2)\n\ndef main():\n    h = float(input(\"Enter your height in centimeters: \"))\n    w = int(input(\"Enter your weight in kilograms: \"))\n    result = calculate_BMI(h, w)\n\n    if isinstance(result, str):\n        print(result)\n    else:\n        print(f\"Your BMI is {result}\")\n\n\nif __name__ == \"__main__\":\n    print(f\"Test 1: {calculate_BMI(2, 3)}\")\n    print(f\"Test 2: {calculate_BMI(5, 10)}\")\n    \n    # Uncomment to run interactive mode:\n    # main()",
+      "timestamp": "2025-12-12 18:22:58"
+    },
+    {
+      "attempt": 2,
+      "code": "def calculate_BMI(height: float, weight: int) -> float:\n    \"\"\"\n\n    Parameters:\n        height (float): The user's height in centimeters.\n        weight (int): The user's weight in kilograms.\n\n    Returns:\n        float: Calculated BMI value.\n    \"\"\"\n    if height <= 0 or weight <= 0:\n        return \"Error: Invalid input. Both height and weight must be greater than zero.\"\n\n    # Convert height from cm to meters\n    height_in_meters = height / 100\n\n    # Calculate BMI\n    bmi = weight / (height_in_meters ** 2)\n\n    return bmi\n\ndef main():\n    try:\n        height = float(input(\"Enter your height in centimeters: \"))\n        weight = int(input(\"Enter your weight in kilograms: \"))\n\n        result = calculate_BMI(height, weight)\n\n        if isinstance(result, str):  # error message\n            print(result)\n        else:\n            print(f\"Your BMI is {result}\")\n    except ValueError:\n        print(\"Invalid input. Please enter a valid number.\")\n\n\nif __name__ == \"__main__\":\n    print(f\"Test 1: {calculate_BMI(2, 3)}\")\n    print(f\"Test 2: {calculate_BMI(5, 10)}\")\n    \n    # Uncomment to run interactive mode:\n    # main()",
+      "timestamp": "2025-12-12 18:24:33"
+    }
+  ],
+  "logs": [
+    {
+      "message": "[18:21:35] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[18:21:35] === Starting Code Generation Workflow ===",
+      "tag": "system"
+    },
+    {
+      "message": "[18:21:35] Model: deepseek-coder:6.7b",
+      "tag": "system"
+    },
+    {
+      "message": "[18:21:35] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[18:21:54] [Refiner] Refinement complete",
+      "tag": "refiner"
+    },
+    {
+      "message": "[18:22:21] [System] Using REFINED prompt",
+      "tag": "success"
+    },
+    {
+      "message": "[18:22:21] \n--- Attempt 1/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[18:22:58] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[18:23:23] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[18:23:23] [Flake8] Found 3 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:23:23]   \u2022 Line 22:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:23:23]   \u2022 Line 36:1: W293 blank line contains whitespace",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:23:23]   \u2022 Line 38:13: W292 no newline at end of file",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:23:51] [Tester] Tests failed: ============================= test session starts ==============================\nplatform linux -- P",
+      "tag": "tester"
+    },
+    {
+      "message": "[18:23:51] \n--- Attempt 2/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[18:24:33] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[18:24:55] [System] Opened in VS Code: /home/mehdi/Desktop/code_generation_crew/outputs/generated_code_20251212_182455.py",
+      "tag": "success"
+    },
+    {
+      "message": "[18:24:57] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[18:24:57] [Flake8] Found 3 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:24:57]   \u2022 Line 22:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:24:57]   \u2022 Line 40:1: W293 blank line contains whitespace",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:24:57]   \u2022 Line 42:13: W292 no newline at end of file",
+      "tag": "flake8"
+    },
+    {
+      "message": "[18:25:26] [Tester] All tests passed",
+      "tag": "tester"
+    },
+    {
+      "message": "[18:25:26] ============================================================",
+      "tag": "success"
+    },
+    {
+      "message": "[18:25:26] === SUCCESS! Code generation complete ===",
+      "tag": "success"
+    },
+    {
+      "message": "[18:25:26] Time elapsed: 231.2s",
+      "tag": "success"
+    },
+    {
+      "message": "[18:25:26] ============================================================",
+      "tag": "success"
+    }
+  ],
+  "errors": [
+    "[18:23:51] Attempt 1 - Tester: ============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.0.1, pluggy-1.6.0 -- /home/mehdi/Desktop/code_generation_crew/venv/bin/python\ncachedir: .pytest_cache\nrootdir: /tmp/tmpk35369le\nplugins: langsmith-0.4.49, anyio-4.12.0\ncollecting ... collected 1 item\n\ntest_code.py::test_llm_generated FAILED                                  [100%]\n\n=================================== FAILURES ===================================\n______________________________ test_llm_generated ______________________________\ntest_code.py:5: in test_llm_generated\n    assert calculate_BMI((170, 65)) == 24.3, \"Test 1\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: calculate_BMI() missing 1 required positional argument: 'weight'\n=========================== short test summary info ============================\nFAILED test_code.py::test_llm_generated - TypeError: calculate_BMI() missing ...\n============================== 1 failed in 0.02s ===============================\n"
+  ]
+}

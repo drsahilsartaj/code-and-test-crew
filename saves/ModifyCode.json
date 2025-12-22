@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-12-11T16:32:17.821208",
+  "model": "deepseek-coder:6.7b",
+  "raw_prompt": "def is_prime(n: int) -> bool:\r\n    \"\"\"Check if a number is prime.\"\"\"\r\n    if n < 2:\r\n        return False\r\n    for i in range(2, int(n**0.5) + 1):\r\n        if n % i == 0:\r\n            return False\r\n    return True\r\n\r\ndef main():\r\n    n = input(\"Enter a positive integer: \")\r\n    result = is_prime(int(n))\r\n    print(f\"Is {n} prime? {result}\")\r\n\r\nif __name__ == \"__main__\":\r\n    main()\r\n\r\nchange this code so it keeps asking me for new numbers in an endless loop, and handle edge cases like letters or negative numbers",
+  "refined_prompt": "MODIFICATION TASK\n\nEXISTING CODE TO MODIFY:\n```python\ndef is_prime(n: int) -> bool:\r\n    \"\"\"Check if a number is prime.\"\"\"\r\n    if n < 2:\r\n        return False\r\n    for i in range(2, int(n**0.5) + 1):\r\n        if n % i == 0:\r\n            return False\r\n    return True\r\n\r\ndef main():\r\n    n = input(\"Enter a positive integer: \")\r\n    result = is_prime(int(n))\r\n    print(f\"Is {n} prime? {result}\")\r\n\r\nif __name__ == \"__main__\":\r\n    main()\n```\n\nCHANGES REQUESTED:\n1. Add endless while True loop in main() that keeps asking for input\n2. Add try/except to handle invalid input like letters\n3. Handle negative numbers with appropriate error message\n\nCRITICAL RULES FOR IMPLEMENTATION:\n- Use while True: for the endless loop\n- Use print() to show results, NOT return (return exits the loop!)\n- Use try/except ValueError to catch non-numeric input\n- Check if number < 0 or < 2 and show error message\n- Keep the original is_prime() (or other core function) unchanged",
+  "code_versions": [
+    {
+      "attempt": 1,
+      "code": "def is_prime(n: int) -> bool:\r\n    \"\"\"Check if a number is prime.\"\"\"\r\n    if n < 2:\r\n        return False\r\n    for i in range(2, int(n**0.5) + 1):\r\n        if n % i == 0:\r\n            return False\r\n    return True\r\n\r\ndef main():\r\n    while True:\r\n        try:\r\n            n = input(\"Enter a positive integer (or 'quit' to exit): \")\r\n            if n.lower() == 'quit':\r\n                print(\"Goodbye!\")\r\n                break\r\n            n = int(n)  # Convert the SAME variable you got from input!\r\n            if n < 0:\r\n                print(\"Please enter a positive number.\")\r\n                continue\r\n            result = is_prime(n)\r\n            print(f\"Is {n} prime? {result}\")   # USE PRINT, NOT RETURN!\r\n        except ValueError:\r\n            print(\"Invalid input. Please enter a valid number.\")\r\n\r\nif __name__ == \"__main__\":\r\n    main()",
+      "timestamp": "2025-12-11 16:31:09"
+    }
+  ],
+  "logs": [
+    {
+      "message": "[16:30:15] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[16:30:15] === Starting Code Generation Workflow ===",
+      "tag": "system"
+    },
+    {
+      "message": "[16:30:15] Model: deepseek-coder:6.7b",
+      "tag": "system"
+    },
+    {
+      "message": "[16:30:15] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[16:30:15] [Refiner] Refinement complete",
+      "tag": "refiner"
+    },
+    {
+      "message": "[16:30:28] [System] Using REFINED prompt",
+      "tag": "success"
+    },
+    {
+      "message": "[16:30:28] \n--- Attempt 1/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[16:31:09] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[16:31:35] [System] Opened in VS Code: /home/mehdi/Desktop/code_generation_crew/outputs/generated_code_20251211_163135.py",
+      "tag": "success"
+    },
+    {
+      "message": "[16:31:41] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[16:31:42] [Flake8] Found 3 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[16:31:42]   \u2022 Line 10:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[16:31:42]   \u2022 Line 26:1: E305 expected 2 blank lines after class or function definition, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[16:31:42]   \u2022 Line 27:11: W292 no newline at end of file",
+      "tag": "flake8"
+    },
+    {
+      "message": "[16:31:42] [Tester] All tests passed",
+      "tag": "tester"
+    },
+    {
+      "message": "[16:31:42] ============================================================",
+      "tag": "success"
+    },
+    {
+      "message": "[16:31:42] === SUCCESS! Code generation complete ===",
+      "tag": "success"
+    },
+    {
+      "message": "[16:31:42] Time elapsed: 87.1s",
+      "tag": "success"
+    },
+    {
+      "message": "[16:31:42] ============================================================",
+      "tag": "success"
+    }
+  ],
+  "errors": []
+}

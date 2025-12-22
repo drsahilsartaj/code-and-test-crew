@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-12-10T22:27:56.789635",
+  "model": "deepseek-coder:6.7b",
+  "raw_prompt": "create a function that asks the user for an integer and then says if its a prime or not",
+  "refined_prompt": "\"Create a function that takes an integer as input from the user and determines if it is prime or not.\"",
+  "code_versions": [
+    {
+      "attempt": 1,
+      "code": "def is_prime(n: int) -> bool:\n    \"\"\"Check if a number is prime.\"\"\"\n    if n <= 1:\n        return False\n    elif n == 2:\n        return True\n    else:\n        for i in range(2, int(n**0.5) + 1):\n            if n % i == 0:\n                return False\n        return True\n\ndef main():\n    n = int(input(\"Enter a number: \"))\n    result = is_prime(n)\n    print(f\"Is {n} prime? {result}\")\n\nif __name__ == \"__main__\":\n    # Test the function\n    assert is_prime(2) == True, \"Test case 1 failed\"\n    assert is_prime(4) == False, \"Test case 2 failed\"\n    assert is_prime(37) == True, \"Test case 3 failed\"\n    assert is_prime(40) == False, \"Test case 4 failed\"\n\n    # Run the main function for user interaction\n    # main()  # Uncomment to run interactive mode",
+      "timestamp": "2025-12-10 22:26:57"
+    }
+  ],
+  "logs": [
+    {
+      "message": "[22:25:13] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[22:25:13] === Starting Code Generation Workflow ===",
+      "tag": "system"
+    },
+    {
+      "message": "[22:25:13] Model: deepseek-coder:6.7b",
+      "tag": "system"
+    },
+    {
+      "message": "[22:25:13] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[22:25:24] [Refiner] Refinement complete",
+      "tag": "refiner"
+    },
+    {
+      "message": "[22:26:13] [System] Using REFINED prompt",
+      "tag": "success"
+    },
+    {
+      "message": "[22:26:13] \n--- Attempt 1/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[22:26:57] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[22:27:01] [System] Opened in VS Code: /home/mehdi/Desktop/code_generation_crew/outputs/generated_code_20251210_222701.py",
+      "tag": "success"
+    },
+    {
+      "message": "[22:27:24] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[22:27:24] [Flake8] Found 7 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[22:27:24]   \u2022 Line 13:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[22:27:24]   \u2022 Line 18:1: E305 expected 2 blank lines after class or function definition, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[22:27:24]   \u2022 Line 20:24: E712 comparison to True should be 'if cond is True:' or 'if cond:'",
+      "tag": "flake8"
+    },
+    {
+      "message": "[22:27:24] [Tester] All tests passed",
+      "tag": "tester"
+    },
+    {
+      "message": "[22:27:24] ============================================================",
+      "tag": "success"
+    },
+    {
+      "message": "[22:27:24] === SUCCESS! Code generation complete ===",
+      "tag": "success"
+    },
+    {
+      "message": "[22:27:24] Time elapsed: 130.9s",
+      "tag": "success"
+    },
+    {
+      "message": "[22:27:24] ============================================================",
+      "tag": "success"
+    }
+  ],
+  "errors": []
+}

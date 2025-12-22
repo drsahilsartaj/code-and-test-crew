@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-12-12T01:41:33.600658",
+  "model": "deepseek-coder:6.7b",
+  "raw_prompt": "create a program that tells me which one is the longest word in a phrase and if there are many with the same length then mention them all",
+  "refined_prompt": "```\nFUNCTION: find_longest_words\nPURPOSE: To identify the longest words in a given phrase.\nINPUT: A string containing one or more space-separated words.\nOUTPUT: A list of strings, where each string is the longest word(s) found in the input phrase.\nEDGE CASES: If there are multiple words with the same maximum length, all these words should be included in the output.\n```",
+  "code_versions": [
+    {
+      "attempt": 1,
+      "code": "def find_longest_words(phrase: str) -> list[str]:\n    \"\"\"Finds the longest words in a given phrase.\"\"\"\n\n    # Split the phrase into words\n    words = phrase.split()\n\n    # Find the maximum length of any word\n    max_length = max(len(word) for word in words)\n\n    # Return all words with that maximum length\n    return [word for word in words if len(word) == max_length]\n\ndef main():\n    phrase = input(\"Enter a phrase: \")\n    longest_words = find_longest_words(phrase)\n    print(\"Longest words are: \", longest_words)\n\n\nif __name__ == \"__main__\":\n    print(f\"find_longest_words('hello world') = {find_longest_words('hello world')}\")\n    print(f\"find_longest_words('the quick brown fox') = {find_longest_words('the quick brown fox')}\")\n    \n    # Uncomment to run interactive mode:\n    # main()",
+      "timestamp": "2025-12-12 01:40:39"
+    }
+  ],
+  "logs": [
+    {
+      "message": "[01:39:47] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[01:39:47] === Starting Code Generation Workflow ===",
+      "tag": "system"
+    },
+    {
+      "message": "[01:39:47] Model: deepseek-coder:6.7b",
+      "tag": "system"
+    },
+    {
+      "message": "[01:39:47] ============================================================",
+      "tag": "system"
+    },
+    {
+      "message": "[01:40:03] [Refiner] Refinement complete",
+      "tag": "refiner"
+    },
+    {
+      "message": "[01:40:20] [System] Using REFINED prompt",
+      "tag": "success"
+    },
+    {
+      "message": "[01:40:20] \n--- Attempt 1/10 ---",
+      "tag": "system"
+    },
+    {
+      "message": "[01:40:39] [Coder] Code generated",
+      "tag": "coder"
+    },
+    {
+      "message": "[01:40:46] [System] Opened in VS Code: /home/mehdi/Desktop/code_generation_crew/outputs/generated_code_20251212_014046.py",
+      "tag": "success"
+    },
+    {
+      "message": "[01:40:59] [Reviewer] Code approved",
+      "tag": "reviewer"
+    },
+    {
+      "message": "[01:40:59] [Flake8] Found 3 style issue(s) (non-blocking)",
+      "tag": "flake8"
+    },
+    {
+      "message": "[01:40:59]   \u2022 Line 13:1: E302 expected 2 blank lines, found 1",
+      "tag": "flake8"
+    },
+    {
+      "message": "[01:40:59]   \u2022 Line 22:1: W293 blank line contains whitespace",
+      "tag": "flake8"
+    },
+    {
+      "message": "[01:40:59]   \u2022 Line 24:13: W292 no newline at end of file",
+      "tag": "flake8"
+    },
+    {
+      "message": "[01:41:00] [Tester] All tests passed",
+      "tag": "tester"
+    },
+    {
+      "message": "[01:41:00] ============================================================",
+      "tag": "success"
+    },
+    {
+      "message": "[01:41:00] === SUCCESS! Code generation complete ===",
+      "tag": "success"
+    },
+    {
+      "message": "[01:41:00] Time elapsed: 72.8s",
+      "tag": "success"
+    },
+    {
+      "message": "[01:41:00] ============================================================",
+      "tag": "success"
+    }
+  ],
+  "errors": []
+}
