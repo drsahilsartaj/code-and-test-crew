@@ -1,6 +1,75 @@
 # Intelligent Code Generation Crew
 A multi-agent system for automated Python code generation using local LLMs via Ollama and LangGraph.
 
+---
+
+## 📖 Table of Contents
+
+| Section | Description |
+|---------|-------------|
+| [Quick Reference Commands](#-quick-reference-commands) | Everyday commands you'll use repeatedly |
+| [Features](#features) | What this project offers |
+| [Quick Start](#-quick-start---choose-your-installation-method) | Choose your installation method |
+| [Option 1: Local Installation](#option-1-local-installation-recommended-for-speed) | Install Ollama locally |
+| [Option 2: Docker Setup](#option-2-docker--hybrid-setup-easiest-setup) | Run Ollama in Docker |
+| [Option 3: Web App](#option-3-web-application-coming-soon-) | Browser-based (coming soon) |
+| [System Requirements](#system-requirements-summary) | Hardware & software needs |
+| [Verify Installation](#verify-your-installation) | Test your setup |
+| [Benchmark Results](#benchmark-results) | Performance metrics |
+| [The Four Agents](#the-four-agents) | How the AI agents work |
+| [Development Environment](#development-environment) | Tested hardware |
+| [Installation Reference](#detailed-installation-reference) | Models & environment setup |
+| [Usage](#usage) | How to use the app |
+| [Project Structure](#project-structure) | File organization |
+| [Agent Workflow](#agent-workflow) | Visual workflow diagram |
+| [Benchmark Examples](#benchmark-test-examples) | Test prompts used |
+| [Key Features Explained](#key-features-explained) | Feature deep-dive |
+| [Tech Stack](#tech-stack) | Technologies used |
+| [Troubleshooting](#troubleshooting) | Fix common issues |
+| [Ollama Commands](#ollama-commands-reference) | Ollama CLI reference |
+| [Development](#development) | Customize the project |
+| [Known Limitations](#known-limitations) | Current constraints |
+| [Authors](#authors) | Project contributors |
+
+---
+
+## ⚡ Quick Reference Commands
+
+Commands you'll use daily. **Copy-paste ready!**
+
+### Start the Application (Docker Setup)
+```bash
+./start.sh                    # Start Ollama in Docker container
+source genai/bin/activate     # Activate Python environment
+python main.py                # Run the application
+```
+
+### Stop the Application
+```bash
+./stop.sh                     # Stop Docker container
+```
+
+### Check Status
+```bash
+docker ps                                      # Check running containers
+docker exec ollama-server ollama list          # Show available models
+```
+
+### Pull Additional Models (Optional)
+```bash
+docker exec ollama-server ollama pull codellama:7b
+docker exec ollama-server ollama pull qwen2.5-coder:7b
+```
+
+### Quick Troubleshooting
+```bash
+docker logs ollama-server     # View container logs
+docker compose down           # Stop and remove container
+./setup.sh                    # Re-run full setup
+```
+
+---
+
 ## Features
 - **Multi-agent workflow**: Refiner → Coder → Reviewer → Tester → Flake8
 - **Iterative refinement**: Up to 10 attempts with intelligent feedback loops
