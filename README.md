@@ -3,7 +3,7 @@ A multi-agent system for automated Python code generation using local LLMs via O
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
 | Section | Description |
 |---------|-------------|
@@ -87,7 +87,7 @@ docker compose down           # Stop and remove container
 
 A desktop shortcut **"Code Generation Crew"** with a custom icon is included in the project folder for easy access. Simply double-click to launch the application.
 
-## 🚀 Quick Start - Choose Your Installation Method
+## Quick Start - Choose Your Installation Method
 
 We offer **3 ways** to run this application:
 
@@ -234,7 +234,7 @@ docker compose down
 
 ---
 
-## Option 3: Web Application (Coming Soon) 🌐
+## Option 3: Web Application (Coming Soon)
 
 **Zero installation required** - just open in your browser!
 
@@ -321,8 +321,8 @@ We evaluated the system using two different benchmark approaches to test differe
 |------------|-----------|-------|
 | Easy       | 87.5%     | 7/8   |
 | Medium     | 89.5%     | 17/19 |
-| Hard       | **100%**  | 8/8 ✨|
-| Very Hard  | **100%**  | 5/5 ✨|
+| Hard       | **100%**  | 8/8 |
+| Very Hard  | **100%**  | 5/5 |
 
 **Key Finding**: System performs BETTER on complex tasks (100% success on Hard/Very Hard) than simple ones. Detailed specifications provide clearer guidance to agents, reducing ambiguity and improving collaboration between Refiner, Coder, Reviewer, and Tester agents.
 
