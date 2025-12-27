@@ -33,7 +33,7 @@ A multi-agent system for automated Python code generation using local LLMs via O
 
 ---
 
-## ⚡ Quick Reference Commands
+## Quick Reference Commands
 
 Commands you'll use daily. **Copy-paste ready!**
 
@@ -83,7 +83,7 @@ docker compose down           # Stop and remove container
 
 ---
 
-## 🖥️ Desktop Shortcut
+## Desktop Shortcut
 
 A desktop shortcut **"Code Generation Crew"** with a custom icon is included in the project folder for easy access. Simply double-click to launch the application.
 
