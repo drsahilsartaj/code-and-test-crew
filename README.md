@@ -7,9 +7,9 @@ A multi-agent system for automated Python code generation using local LLMs via O
 
 | Section | Description |
 |---------|-------------|
-| [Quick Reference Commands](#-quick-reference-commands) | Everyday commands you'll use repeatedly |
+| [Quick Reference Commands](#quick-reference-commands) | Everyday commands you'll use repeatedly |
 | [Features](#features) | What this project offers |
-| [Quick Start](#-quick-start---choose-your-installation-method) | Choose your installation method |
+| [Quick Start](#quick-start---choose-your-installation-method) | Choose your installation method |
 | [Option 1: Local Installation](#option-1-local-installation-recommended-for-speed) | Install Ollama locally |
 | [Option 2: Docker Setup](#option-2-docker--hybrid-setup-easiest-setup) | Run Ollama in Docker |
 | [Option 3: Web App](#option-3-web-application-coming-soon-) | Browser-based (coming soon) |
