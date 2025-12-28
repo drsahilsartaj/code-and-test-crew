@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Generation Crew</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header Bar -->
+        <header class="header">
+            <div class="header-left">
+                <span class="title">Code Generation Crew</span>
+            </div>
+            <div class="header-center">
+                <div class="progress-bar-header">
+                    <div class="progress-fill-header" id="progressFillHeader"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="attempt-info" id="attemptInfo">Attempt: 0/10</span>
+                <span class="status-text" id="statusText">Ready</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel -->
+            <section class="left-panel">
+                <!-- Model Selection Row -->
+                <div class="model-row">
+                    <label>Model:</label>
+                    <select id="modelSelect" class="select-input">
+                        {% for model in models %}
+                        <option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>
+                            {{ model.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span class="connection-status" id="connectionStatus">Ready</span>
+                </div>
+
+                <!-- Button Row -->
+                <div class="button-row">
+                    <button class="btn btn-start" id="startBtn" onclick="startGeneration()">Start</button>
+                    <button class="btn btn-secondary" id="useOriginalBtn" onclick="useOriginal()" disabled>Use Original</button>
+                    <button class="btn btn-secondary" id="useRefinedBtn" onclick="useRefined()" disabled>Use Refined</button>
+                    <button class="btn btn-secondary" id="refineAgainBtn" onclick="refineAgain()" disabled>Refine Again</button>
+                    <button class="btn btn-secondary" id="stopBtn" onclick="stopGeneration()" disabled>Stop</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+                </div>
+
+                <!-- Prompt Input -->
+                <div class="section">
+                    <label class="section-label">Prompt Input</label>
+                    <textarea id="promptInput" class="textarea-input" 
+                        placeholder="Enter your code generation prompt here..."></textarea>
+                </div>
+
+                <!-- Refined Prompt -->
+                <div class="section">
+                    <label class="section-label">Refined Prompt</label>
+                    <div class="refined-prompt-box" id="refinedPrompt"></div>
+                </div>
+
+                <!-- Generated Code -->
+                <div class="section code-section">
+                    <div class="code-header">
+                        <label class="section-label">Generated Code</label>
+                        <div class="code-controls">
+                            <label>Version:</label>
+                            <select id="versionSelect" class="select-input select-small" onchange="loadVersion()">
+                                <option value="latest">Latest</option>
+                            </select>
+                            <button class="btn btn-small" onclick="openInVSCode()">▶ Run Online</button>
+                        </div>
+                    </div>
+                    <div class="code-container">
+                        <div class="line-numbers" id="lineNumbers">1</div>
+                        <pre class="code-display"><code id="codeOutput" class="language-python"></code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel -->
+            <section class="right-panel">
+                <!-- Agent Status -->
+                <div class="agent-status-section">
+                    <label class="section-label">Agent Status</label>
+                    <div class="agent-list">
+                        <div class="agent-item" id="agent-refiner">
+                            <span class="agent-dot"></span>
+                            <span class="agent-name">Refiner</span>
+                        </div>
+                        <div class="agent-item" id="agent-coder">
+                            <span class="agent-dot"></span>
+                            <span class="agent-name">Coder</span>
+                        </div>
+                        <div class="agent-item" id="agent-reviewer">
+                            <span class="agent-dot"></span>
+                            <span class="agent-name">Reviewer</span>
+                        </div>
+                        <div class="agent-item" id="agent-tester">
+                            <span class="agent-dot"></span>
+                            <span class="agent-name">Tester</span>
+                        </div>
+                        <div class="agent-item" id="agent-flake8">
+                            <span class="agent-dot"></span>
+                            <span class="agent-name">Flake8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="log-section">
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab(this, 'activity')">Activity Log</button>
+                        <button class="tab" onclick="switchTab(this, 'errors')">Errors</button>
+                    </div>
+                    <div class="log-container">
+                        <div class="log-content" id="activityTab"></div>
+                        <div class="log-content" id="errorsTab" style="display: none;"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

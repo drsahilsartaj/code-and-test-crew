@@ -1,0 +1,41 @@
+# Code and Test Crew - Web Application Docker Compose
+# Run from project root: docker-compose -f webapp/docker-compose.webapp.yml up -d
+
+version: '3.8'
+
+services:
+  # Ollama Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Web Application
+  webapp:
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
+    container_name: code-crew-webapp
+    ports:
+      - "5001:5001"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - FLASK_ENV=production
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+    name: ollama_data
