@@ -234,11 +234,33 @@ docker compose down
 
 ---
 
-## Option 3: Web Application (Coming Soon)
+## Option 3: Web Application
 
-**Zero installation required** - just open in your browser!
+**Browser-based interface** - same features as desktop, accessible anywhere!
 
-> **Status**: Under Development
+### Quick Start
+```bash
+# Make sure Ollama is running
+./start.sh
+
+# Run webapp
+cd webapp
+source ../genai/bin/activate
+python app.py
+
+# Open browser
+open http://localhost:5001
+```
+
+### Features
+-  Same Matrix dark theme as desktop
+-  Real-time agent status & logs
+-  Prompt refinement workflow
+-  Code syntax highlighting
+-  Version history
+-  Run code online (one-click)
+
+> **Note**: Requires Ollama running locally. For cloud deployment, see `webapp/README.md`.
 
 ### Features (Planned)
 - Same functionality as desktop app
