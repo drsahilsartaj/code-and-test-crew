@@ -5,135 +5,350 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Generation Crew</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Bar -->
-        <header class="header">
-            <div class="header-left">
-                <span class="title">Code Generation Crew</span>
+        <!-- Top Header Bar -->
+        <header class="top-bar">
+            <h1 class="app-title">Code Generation Crew</h1>
+            
+            <div class="top-controls">
+                <label>Model:</label>
+                <select id="model-select" class="model-dropdown">
+                    {% for model in models %}
+                    <option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>
+                        {{ model.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <span id="connection-status" class="status-badge ready">Ready</span>
             </div>
-            <div class="header-center">
-                <div class="progress-bar-header">
-                    <div class="progress-fill-header" id="progressFillHeader"></div>
-                </div>
-            </div>
-            <div class="header-right">
-                <span class="attempt-info" id="attemptInfo">Attempt: 0/10</span>
-                <span class="status-text" id="statusText">Ready</span>
+            
+            <div class="attempt-display">
+                <span id="attempt-counter">Attempt: 0/10</span>
+                <span id="status-text" class="status-badge ready">Ready</span>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Left Panel -->
-            <section class="left-panel">
-                <!-- Model Selection Row -->
-                <div class="model-row">
-                    <label>Model:</label>
-                    <select id="modelSelect" class="select-input">
-                        {% for model in models %}
-                        <option value="{{ model.id }}" {% if model.id == default_model %}selected{% endif %}>
-                            {{ model.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <span class="connection-status" id="connectionStatus">Ready</span>
-                </div>
+        <!-- Button Bar -->
+        <div class="button-bar">
+            <button id="btn-start" class="btn btn-start">Start</button>
+            <button id="btn-use-original" class="btn btn-secondary" disabled>Use Original</button>
+            <button id="btn-use-refined" class="btn btn-secondary" disabled>Use Refined</button>
+            <button id="btn-refine-again" class="btn btn-secondary" disabled>Refine Again</button>
+            <button id="btn-stop" class="btn btn-secondary">Stop</button>
+            <button id="btn-clear" class="btn btn-secondary">Clear</button>
+        </div>
 
-                <!-- Button Row -->
-                <div class="button-row">
-                    <button class="btn btn-start" id="startBtn" onclick="startGeneration()">Start</button>
-                    <button class="btn btn-secondary" id="useOriginalBtn" onclick="useOriginal()" disabled>Use Original</button>
-                    <button class="btn btn-secondary" id="useRefinedBtn" onclick="useRefined()" disabled>Use Refined</button>
-                    <button class="btn btn-secondary" id="refineAgainBtn" onclick="refineAgain()" disabled>Refine Again</button>
-                    <button class="btn btn-secondary" id="stopBtn" onclick="stopGeneration()" disabled>Stop</button>
-                    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
-                </div>
-
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Left Column -->
+            <div class="left-column">
                 <!-- Prompt Input -->
-                <div class="section">
-                    <label class="section-label">Prompt Input</label>
-                    <textarea id="promptInput" class="textarea-input" 
-                        placeholder="Enter your code generation prompt here..."></textarea>
+                <div class="section prompt-section">
+                    <div class="section-header">Prompt Input</div>
+                    <textarea id="prompt-input" class="text-area" 
+                        placeholder="create a function that checks if a number is prime"></textarea>
                 </div>
 
                 <!-- Refined Prompt -->
-                <div class="section">
-                    <label class="section-label">Refined Prompt</label>
-                    <div class="refined-prompt-box" id="refinedPrompt"></div>
+                <div class="section refined-section">
+                    <div class="section-header">Refined Prompt</div>
+                    <div id="refined-prompt" class="text-area readonly"></div>
                 </div>
 
                 <!-- Generated Code -->
                 <div class="section code-section">
-                    <div class="code-header">
-                        <label class="section-label">Generated Code</label>
+                    <div class="section-header">
+                        <span>Generated Code</span>
                         <div class="code-controls">
                             <label>Version:</label>
-                            <select id="versionSelect" class="select-input select-small" onchange="loadVersion()">
-                                <option value="latest">Latest</option>
+                            <select id="version-select" class="version-dropdown">
+                                <option value="latest">--</option>
                             </select>
-                            <button class="btn btn-small" onclick="openInVSCode()">▶ Run Online</button>
+                            <button id="btn-run-online" class="btn btn-small">▶ Run Online</button>
                         </div>
                     </div>
                     <div class="code-container">
-                        <div class="line-numbers" id="lineNumbers">1</div>
-                        <pre class="code-display"><code id="codeOutput" class="language-python"></code></pre>
+                        <div class="line-numbers" id="line-numbers"></div>
+                        <pre class="code-area"><code id="code-output"></code></pre>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Right Panel -->
-            <section class="right-panel">
+            <!-- Right Column -->
+            <div class="right-column">
                 <!-- Agent Status -->
-                <div class="agent-status-section">
-                    <label class="section-label">Agent Status</label>
+                <div class="section agent-section">
+                    <div class="section-header">Agent Status</div>
                     <div class="agent-list">
                         <div class="agent-item" id="agent-refiner">
-                            <span class="agent-dot"></span>
+                            <span class="agent-dot waiting"></span>
                             <span class="agent-name">Refiner</span>
                         </div>
                         <div class="agent-item" id="agent-coder">
-                            <span class="agent-dot"></span>
+                            <span class="agent-dot waiting"></span>
                             <span class="agent-name">Coder</span>
                         </div>
                         <div class="agent-item" id="agent-reviewer">
-                            <span class="agent-dot"></span>
+                            <span class="agent-dot waiting"></span>
                             <span class="agent-name">Reviewer</span>
                         </div>
                         <div class="agent-item" id="agent-tester">
-                            <span class="agent-dot"></span>
+                            <span class="agent-dot waiting"></span>
                             <span class="agent-name">Tester</span>
                         </div>
                         <div class="agent-item" id="agent-flake8">
-                            <span class="agent-dot"></span>
+                            <span class="agent-dot waiting"></span>
                             <span class="agent-name">Flake8</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Activity Log -->
-                <div class="log-section">
-                    <div class="tabs">
-                        <button class="tab active" onclick="switchTab(this, 'activity')">Activity Log</button>
-                        <button class="tab" onclick="switchTab(this, 'errors')">Errors</button>
+                <!-- Logs -->
+                <div class="section log-section">
+                    <div class="tab-bar">
+                        <button class="tab-btn active" data-tab="activity">Activity Log</button>
+                        <button class="tab-btn" data-tab="error">Errors</button>
                     </div>
-                    <div class="log-container">
-                        <div class="log-content" id="activityTab"></div>
-                        <div class="log-content" id="errorsTab" style="display: none;"></div>
-                    </div>
+                    <div id="activity-log" class="log-area active"></div>
+                    <div id="error-log" class="log-area"></div>
                 </div>
-            </section>
-        </main>
+            </div>
+        </div>
     </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        const socket = io({ reconnection: true, timeout: 120000 });
+        
+        let sessionId = null;
+        let isRunning = false;
+        let codeVersions = [];
+        
+        // DOM
+        const modelSelect = document.getElementById('model-select');
+        const promptInput = document.getElementById('prompt-input');
+        const refinedPrompt = document.getElementById('refined-prompt');
+        const codeOutput = document.getElementById('code-output');
+        const lineNumbers = document.getElementById('line-numbers');
+        const attemptCounter = document.getElementById('attempt-counter');
+        const connectionStatus = document.getElementById('connection-status');
+        const statusText = document.getElementById('status-text');
+        const activityLog = document.getElementById('activity-log');
+        const errorLog = document.getElementById('error-log');
+        const versionSelect = document.getElementById('version-select');
+        
+        const btnStart = document.getElementById('btn-start');
+        const btnUseOriginal = document.getElementById('btn-use-original');
+        const btnUseRefined = document.getElementById('btn-use-refined');
+        const btnRefineAgain = document.getElementById('btn-refine-again');
+        const btnStop = document.getElementById('btn-stop');
+        const btnClear = document.getElementById('btn-clear');
+        const btnRunOnline = document.getElementById('btn-run-online');
+        
+        function log(msg, type = 'system') {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            activityLog.appendChild(entry);
+            activityLog.scrollTop = activityLog.scrollHeight;
+            
+            if (type === 'error') {
+                errorLog.appendChild(entry.cloneNode(true));
+            }
+        }
+        
+        function setStatus(status, text) {
+            connectionStatus.className = `status-badge ${status}`;
+            connectionStatus.textContent = text;
+            statusText.className = `status-badge ${status}`;
+            statusText.textContent = text;
+        }
+        
+        function setAgent(agent, status) {
+            const el = document.getElementById(`agent-${agent}`);
+            if (el) el.querySelector('.agent-dot').className = `agent-dot ${status}`;
+        }
+        
+        function resetAgents() {
+            ['refiner', 'coder', 'reviewer', 'tester', 'flake8'].forEach(a => setAgent(a, 'waiting'));
+        }
+        
+        function updateLines(code) {
+            const lines = code ? code.split('\n') : [''];
+            lineNumbers.innerHTML = lines.map((_, i) => `<span>${i + 1}</span>`).join('\n');
+        }
+        
+        function setCode(code) {
+            codeOutput.textContent = code;
+            updateLines(code);
+        }
+        
+        function enablePromptButtons(enable) {
+            btnUseOriginal.disabled = !enable;
+            btnUseRefined.disabled = !enable;
+            btnRefineAgain.disabled = !enable;
+        }
+        
+        // Socket events
+        socket.on('connect', () => {
+            setStatus('ready', 'Connected');
+            log('Connected to server', 'success');
+        });
+        
+        socket.on('session_created', (data) => {
+            sessionId = data.session_id;
+        });
+        
+        socket.on('log', (data) => {
+            if (data.session_id !== sessionId) return;
+            
+            const agentName = data.agent.charAt(0).toUpperCase() + data.agent.slice(1);
+            log(`<span class="agent-tag">[${agentName}]</span> ${data.message}`, data.level);
+            
+            // Update agent status
+            if (data.level === 'info') setAgent(data.agent, 'active');
+            else if (data.level === 'success') setAgent(data.agent, 'complete');
+            else if (data.level === 'error') setAgent(data.agent, 'error');
+            else if (data.level === 'warning') setAgent(data.agent, 'complete');
+        });
+        
+        socket.on('status', (data) => {
+            if (data.session_id !== sessionId) return;
+            
+            switch (data.status) {
+                case 'started':
+                    isRunning = true;
+                    btnStart.disabled = true;
+                    setStatus('active', 'Running...');
+                    break;
+                case 'generating':
+                    if (data.data) {
+                        attemptCounter.textContent = `Attempt: ${data.data.attempt}/${data.data.max}`;
+                    }
+                    break;
+                case 'completed':
+                    isRunning = false;
+                    btnStart.disabled = false;
+                    enablePromptButtons(false);
+                    setStatus('ready', 'Complete');
+                    break;
+                case 'failed':
+                case 'stopped':
+                case 'error':
+                    isRunning = false;
+                    btnStart.disabled = false;
+                    enablePromptButtons(false);
+                    setStatus('ready', data.status.charAt(0).toUpperCase() + data.status.slice(1));
+                    break;
+            }
+        });
+        
+        socket.on('refined_prompt', (data) => {
+            if (data.session_id !== sessionId) return;
+            refinedPrompt.textContent = data.refined;
+            enablePromptButtons(true);
+            setStatus('ready', 'Choose prompt');
+            log('[System] Choose: Use Original, Use Refined, or Refine Again', 'info');
+        });
+        
+        socket.on('code_result', (data) => {
+            if (data.session_id !== sessionId) return;
+            setCode(data.code);
+            codeVersions = data.versions || [];
+            
+            versionSelect.innerHTML = '<option value="latest">Latest</option>';
+            codeVersions.forEach((v, i) => {
+                versionSelect.innerHTML += `<option value="${i}">v${v.attempt} (${v.timestamp})</option>`;
+            });
+        });
+        
+        // Button handlers
+        btnStart.onclick = () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt) { log('Enter a prompt', 'error'); return; }
+            
+            resetAgents();
+            codeVersions = [];
+            refinedPrompt.textContent = '';
+            setCode('');
+            attemptCounter.textContent = 'Attempt: 0/10';
+            activityLog.innerHTML = '';
+            errorLog.innerHTML = '';
+            
+            log('Starting code generation...', 'system');
+            socket.emit('start_generation', {
+                session_id: sessionId,
+                prompt: prompt,
+                model: modelSelect.value
+            });
+        };
+        
+        btnUseOriginal.onclick = () => {
+            enablePromptButtons(false);
+            log('Using original prompt', 'info');
+            socket.emit('continue_generation', { session_id: sessionId, use_refined: false });
+        };
+        
+        btnUseRefined.onclick = () => {
+            enablePromptButtons(false);
+            log('Using refined prompt', 'info');
+            socket.emit('continue_generation', { session_id: sessionId, use_refined: true });
+        };
+        
+        btnRefineAgain.onclick = () => {
+            log('Re-refining prompt...', 'info');
+            socket.emit('refine_again', { session_id: sessionId });
+        };
+        
+        btnStop.onclick = () => {
+            socket.emit('stop_generation', { session_id: sessionId });
+            log('Stop requested', 'warning');
+        };
+        
+        btnClear.onclick = () => {
+            promptInput.value = '';
+            refinedPrompt.textContent = '';
+            setCode('');
+            codeVersions = [];
+            versionSelect.innerHTML = '<option>--</option>';
+            activityLog.innerHTML = '';
+            errorLog.innerHTML = '';
+            attemptCounter.textContent = 'Attempt: 0/10';
+            resetAgents();
+            enablePromptButtons(false);
+        };
+        
+        btnRunOnline.onclick = () => {
+            const code = codeOutput.textContent;
+            if (!code) { log('No code to run', 'error'); return; }
+            navigator.clipboard.writeText(code);
+            window.open('https://onecompiler.com/python', '_blank');
+            log('Code copied - paste in compiler', 'success');
+        };
+        
+        versionSelect.onchange = () => {
+            const idx = parseInt(versionSelect.value);
+            if (codeVersions[idx]) setCode(codeVersions[idx].code);
+        };
+        
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.log-area').forEach(l => l.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`${btn.dataset.tab}-log`).classList.add('active');
+            };
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') btnStart.click();
+            if (e.key === 'Escape') btnStop.click();
+        });
+    </script>
 </body>
 </html>

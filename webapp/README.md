@@ -1,63 +1,60 @@
-#  Code and Test Crew - Web Application
+# 🌐 Code and Test Crew - Web Application
 
 Web-based interface for the Code and Test Crew multi-agent system.
 
-##  Quick Start
+## 🚀 Quick Start
 ```bash
-# From project root - make sure Ollama is running
-./start.sh
-
-# Run webapp
+# From project root
+./start.sh                              # Start Ollama
+source genai/bin/activate               # Activate environment
+pip3 install -r webapp/requirements-web.txt  # First time only
 cd webapp
-source ../genai/bin/activate
-python app.py
+python3 app.py
 ```
 
 Open: **http://localhost:5001**
 
-##  Features
-
-- Matrix dark green theme
-- Real-time agent status with colored dots
-- Prompt refinement with user choice
-- Syntax-highlighted code output
-- Version history (all attempts)
-- Run code online (opens compiler with code copied)
-- Keyboard shortcuts (Ctrl+Enter to start, Escape to stop)
-
-##  Structure
+## 📁 Structure
 ```
 webapp/
 ├── app.py                    # Flask + WebSocket backend
 ├── requirements-web.txt      # Dependencies
-├── templates/index.html      # UI
+├── docker-compose.webapp.yml # Docker deployment
+├── Dockerfile                # Container build
+├── templates/
+│   └── index.html            # UI + JavaScript
 └── static/
-    ├── css/style.css         # Styling
-    └── js/main.js            # Frontend logic
+    └── css/style.css         # Matrix dark theme
 ```
+
+## ✨ Features
+
+- 🎨 Matrix dark green theme
+- 🤖 Real-time agent status & logs
+- 📊 Prompt refinement workflow
+- 💻 Syntax-highlighted code
+- 🔄 Version history
+- ▶️ Run code online (one-click)
+- ⌨️ Keyboard shortcuts (Ctrl+Enter, Escape)
 
 ## 🐳 Docker (Optional)
 ```bash
-# If Ollama already running locally
+# From project root
 docker-compose -f webapp/docker-compose.webapp.yml up -d webapp
 
-# Or run everything in Docker
-docker stop ollama-server && docker rm ollama-server
-docker-compose -f webapp/docker-compose.webapp.yml up -d
+# Open browser
+open http://localhost:5001
 ```
 
-## 🔧 How It Works
+## 📝 Usage
 
-The webapp imports the **same agents** as the desktop GUI:
-```python
-from agents.coder import generate_code
-from agents.reviewer import review_code
-from agents.tester import run_tests
-from agents.refiner import refine_prompt
-```
-
-Same code, same performance - just different UI!
+1. Select a model from dropdown
+2. Enter your coding prompt
+3. Click **Start** (or Ctrl+Enter)
+4. Choose: Use Original, Use Refined, or Refine Again
+5. Watch agents work in real-time
+6. Click **Run Online** to test code
 
 ---
 
-Made with ❤️ by the Code Generation Crew Team
+Made with ❤️ by [Sahil Sartaj](https://www.linkedin.com/in/sssahilsartaj/)

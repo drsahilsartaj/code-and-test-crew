@@ -2,7 +2,6 @@
 A multi-agent system for automated Python code generation using local LLMs via Ollama and LangGraph.
 
 ---
-
 ## Table of Contents
 
 | Section | Description |
@@ -12,7 +11,7 @@ A multi-agent system for automated Python code generation using local LLMs via O
 | [Quick Start](#quick-start---choose-your-installation-method) | Choose your installation method |
 | [Option 1: Local Installation](#option-1-local-installation-recommended-for-speed) | Install Ollama locally |
 | [Option 2: Docker Setup](#option-2-docker--hybrid-setup-easiest-setup) | Run Ollama in Docker |
-| [Option 3: Web App](#option-3-web-application-coming-soon-) | Browser-based (coming soon) |
+| [Option 3: Web App](#option-3-web-application) | Browser-based interface |
 | [System Requirements](#system-requirements-summary) | Hardware & software needs |
 | [Verify Installation](#verify-your-installation) | Test your setup |
 | [Benchmark Results](#benchmark-results) | Performance metrics |
@@ -240,43 +239,26 @@ docker compose down
 
 ### Quick Start
 ```bash
-# Make sure Ollama is running
-./start.sh
-
-# Run webapp
-source ../genai/bin/activate
+# From project root
+./start.sh                              # Make sure Ollama is running
+source genai/bin/activate               # Activate environment
+pip3 install -r webapp/requirements-web.txt  # Install webapp dependencies (first time only)
 cd webapp
-python app.py
-
-# Open browser
-open http://localhost:5001
+python3 app.py                          # Run webapp
 ```
 
+Open: **http://localhost:5001**
+
 ### Features
--  Same Matrix dark theme as desktop
--  Real-time agent status & logs
--  Prompt refinement workflow
--  Code syntax highlighting
--  Version history
--  Run code online (one-click)
+- ✅ Same Matrix dark theme as desktop
+- ✅ Real-time agent status & logs
+- ✅ Prompt refinement workflow
+- ✅ Code syntax highlighting
+- ✅ Version history
+- ✅ Run code online (one-click)
 
 > **Note**: Requires Ollama running locally. For cloud deployment, see `webapp/README.md`.
 
-### Features (Planned)
-- Same functionality as desktop app
-- No local installation needed
-- Works on any device with a browser
-- Cloud-hosted AI models
-
-### How it will work
-1. Visit the web app URL
-2. Enter your code generation prompt
-3. Watch agents work in real-time
-4. Download generated code
-
-**Stay tuned!** We're working on deploying this as a web service.
-
----
 
 ## System Requirements Summary
 

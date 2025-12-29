@@ -1,22 +1,42 @@
-def fibonacci_sequence(n: int) -> list[int]:
-    """Generate Fibonacci sequence up to a given number of terms."""
-    if n <= 0:
-        return []
+from typing import List, Union
 
-    fib = [0, 1] + [0] * (n-2)
-    for i in range(2, n):
-        fib[i] = fib[i-1] + fib[i-2]
+def find_smallest_number(numbers: List[Union[int, float]]) -> float:
+    """Finds the smallest number in a list of numbers."""
 
-    return fib
+    if not numbers:  # handle edge case where input is an empty list
+        return None
+
+    smallest = numbers[0]
+    for num in numbers:
+        if num < smallest:
+            smallest = num
+
+    return float(smallest)
 
 def main():
-    num_terms = int(input("Enter the number of terms to generate: "))
-    print(fibonacci_sequence(num_terms))
+    """Main function to interactively get user input."""
+
+    # Get a list of numbers from the user
+    print("Enter a list of numbers, separated by spaces:")
+    numbers_str = input().split()  # split on whitespace
+
+    try:
+        numbers = [float(num) for num in numbers_str]  # convert to floats
+    except ValueError:
+        print("Invalid input. Please enter a list of numbers.")
+        return
+
+    smallest = find_smallest_number(numbers)
+
+    if smallest is not None:
+        print(f"The smallest number in the list is {smallest}")
+    else:
+        print("No numbers were provided.")
 
 
 if __name__ == "__main__":
-    print(f"fibonacci_sequence(10) = {fibonacci_sequence(10)}")
-    print(f"fibonacci_sequence(0) = {fibonacci_sequence(0)}")
+    print(f"find_smallest_number(3, 'world') = {find_smallest_number(3, 'world')}")
+    print(f"find_smallest_number(5, 'hello') = {find_smallest_number(5, 'hello')}")
     
     # Uncomment to run interactive mode:
     # main()
