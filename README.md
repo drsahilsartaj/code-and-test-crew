@@ -244,8 +244,8 @@ docker compose down
 ./start.sh
 
 # Run webapp
-cd webapp
 source ../genai/bin/activate
+cd webapp
 python app.py
 
 # Open browser
