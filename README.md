@@ -38,9 +38,17 @@ Commands you'll use daily. **Copy-paste ready!**
 
 ### Start the Application (Docker Setup)
 ```bash
-./start.sh                    # Start Ollama in Docker container
-source genai/bin/activate     # Activate Python environment
-python main.py                # Run the application
+cd code-generation-crew          # Go to project folder
+./start.sh                       # Start Ollama (Docker)
+source genai/bin/activate        # Activate Python environment
+python main.py                   # Run the app (use python3 if outside venv)
+```
+### If using Local Ollama (not Docker)
+```bash
+cd code-generation-crew
+ollama serve &                   # Start Ollama (background)
+source genai/bin/activate
+python main.py
 ```
 
 ### Stop the Application
@@ -132,6 +140,12 @@ git clone https://github.com/drsahilsartaj/code-and-test-crew.git
 cd code-and-test-crew
 
 # Create virtual environment
+# macOS: Use Homebrew Python 3.12 (required for Tkinter compatibility)
+/opt/homebrew/bin/python3.12 -m venv genai   # Apple Silicon Mac
+# OR
+/usr/local/bin/python3.12 -m venv genai      # Intel Mac
+
+# Linux/Windows: Use system Python 3.12+
 python3 -m venv genai
 source genai/bin/activate        # On Windows: genai\Scripts\activate
 
@@ -142,7 +156,8 @@ pip install -r requirements.txt
 
 ### Step 4: Install Tkinter (GUI dependency)
 ```bash
-# macOS
+# macOS (MUST install Python 3.12 first!)
+brew install python@3.12
 brew install python-tk@3.12
 
 # Linux (Ubuntu/Debian)
@@ -200,7 +215,7 @@ pip install -r requirements.txt
 brew install python-tk@3.12
 
 # Run the app
-python main.py
+python main.py  # Inside activated venv, 'python' works
 ```
 
 ### Helper Scripts
@@ -623,12 +638,9 @@ If code fails:
 
 ### 3. Smart Test Generation
 Automatically creates pytest tests:
-```python
-# For: "create a function that finds primes less than n"
-def test_finds_primes():
-    assert find_primes(10) == [2, 3, 5, 7]
-    assert find_primes(2) == []
-```
+- **35 pre-defined patterns** for common programming tasks
+- **Smart fallback** analyzes code to detect return types
+- **Intelligent input type detection** based on code analysis
 
 ### 4. Non-Blocking Flake8
 Style issues are reported but don't block workflow:
@@ -716,6 +728,24 @@ ollama list
 
 # Download missing model
 ollama pull deepseek-coder:6.7b
+```
+
+### macOS Tkinter Crash ("macOS 26 or later required")
+This happens when using macOS's built-in Python 3.9 with outdated Tcl/Tk.
+
+**Fix:**
+```bash
+# Install Python 3.12 with Tkinter
+brew install python@3.12
+brew install python-tk@3.12
+
+# Recreate virtual environment with Python 3.12
+deactivate                                    # Exit current venv
+rm -rf genai                                  # Delete old venv
+/opt/homebrew/bin/python3.12 -m venv genai    # Create new venv
+source genai/bin/activate                     # Activate
+pip install -r requirements.txt               # Reinstall dependencies
+python main.py                                # Run app
 ```
 
 ### Code generation keeps failing

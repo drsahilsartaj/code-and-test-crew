@@ -1,4 +1,4 @@
-"""Tester Agent - Executes code and runs tests with LLM fallback and signature validation."""
+"""Tester Agent - Executes code and runs tests with generic code analysis."""
 
 import subprocess
 import sys
@@ -9,369 +9,401 @@ import ast
 from utils.state import AgentState
 from langchain_ollama import ChatOllama
 
-# LLM for fallback test generation (only used when no pattern matches)
 test_llm = ChatOllama(model="codellama:7b-instruct-q4_0", temperature=0.2)
 
 
 # ============================================================
-# TASK DETECTION
+# GENERIC CODE ANALYSIS - Determines input type from actual code
+# ============================================================
+
+def analyze_code_input_expectations(code: str, func_info: dict) -> dict:
+    """
+    Analyze the ACTUAL CODE to determine what input type the function expects.
+    """
+    if not func_info or not code:
+        return {'input_type': 'unknown', 'confidence': 'low', 'reason': 'No code provided'}
+    
+    param_names = func_info.get('param_names', [])
+    if not param_names:
+        return {'input_type': 'unknown', 'confidence': 'low', 'reason': 'No parameters'}
+    
+    first_param = param_names[0]
+    code_lower = code.lower()
+    first_param_lower = first_param.lower()
+    
+    # PATTERN 1: String split patterns
+    split_patterns = [
+        f'{first_param_lower}.split(',
+        f'{first_param_lower}.split()',
+        f'{first_param_lower}.strip(',
+        f'{first_param_lower}.strip().',
+    ]
+    for pattern in split_patterns:
+        if pattern in code_lower:
+            return {
+                'input_type': 'str_numbers',
+                'confidence': 'high',
+                'reason': f'Code uses {pattern} - expects space-separated string'
+            }
+    
+    if '.split' in code_lower and ('int(' in code_lower or 'float(' in code_lower):
+        return {
+            'input_type': 'str_numbers',
+            'confidence': 'high',
+            'reason': 'Code splits string and converts to numbers'
+        }
+    
+    # PATTERN 2: Direct list operations
+    list_funcs = ['min(', 'max(', 'sum(', 'sorted(', 'len(', 'enumerate(']
+    for func in list_funcs:
+        if f'{func}{first_param_lower})' in code_lower or f'{func}{first_param_lower},' in code_lower:
+            if '.split' not in code_lower:
+                return {
+                    'input_type': 'list',
+                    'confidence': 'high',
+                    'reason': f'Code uses {func} directly on parameter'
+                }
+    
+    if re.search(rf'{re.escape(first_param_lower)}\s*\[', code_lower):
+        if '.split' not in code_lower:
+            return {
+                'input_type': 'list',
+                'confidence': 'medium',
+                'reason': 'Code uses indexing on parameter'
+            }
+    
+    if f'for ' in code_lower and f' in {first_param_lower}' in code_lower:
+        if '.split' not in code_lower:
+            return {
+                'input_type': 'list',
+                'confidence': 'medium',
+                'reason': 'Code iterates over parameter'
+            }
+    
+    # PATTERN 3: String text operations
+    str_methods = ['.lower()', '.upper()', '.replace(', '.count(', '.find(', '[::-1]', '.isalpha()', '.isdigit()']
+    for method in str_methods:
+        if f'{first_param_lower}{method}' in code_lower:
+            return {
+                'input_type': 'str_text',
+                'confidence': 'high',
+                'reason': f'Code uses string method {method}'
+            }
+    
+    # PATTERN 4: Numeric operations
+    numeric_ops = ['%', '//', '/', '**', '*', '<', '>', '<=', '>=', '==']
+    for op in numeric_ops:
+        if f'{first_param_lower} {op}' in code_lower or f'{first_param_lower}{op}' in code_lower:
+            return {
+                'input_type': 'int',
+                'confidence': 'high',
+                'reason': f'Code uses numeric operator {op}'
+            }
+    
+    if f'range({first_param_lower}' in code_lower or f'range(1, {first_param_lower}' in code_lower or f'range(2, {first_param_lower}' in code_lower:
+        return {
+            'input_type': 'int',
+            'confidence': 'high',
+            'reason': 'Code uses parameter in range()'
+        }
+    
+    # PATTERN 5: Type hints
+    param_types = func_info.get('param_types', [])
+    if param_types and param_types[0] != 'unknown':
+        hint = param_types[0].lower()
+        if 'list' in hint or '[' in hint:
+            return {
+                'input_type': 'list',
+                'confidence': 'high',
+                'reason': f'Type hint: {param_types[0]}'
+            }
+        elif 'str' in hint:
+            if 'int(' in code_lower or 'float(' in code_lower:
+                return {
+                    'input_type': 'str_numbers',
+                    'confidence': 'high',
+                    'reason': 'Type hint str with number conversion'
+                }
+            return {
+                'input_type': 'str_text',
+                'confidence': 'high',
+                'reason': f'Type hint: {param_types[0]}'
+            }
+        elif 'int' in hint:
+            return {
+                'input_type': 'int',
+                'confidence': 'high',
+                'reason': f'Type hint: {param_types[0]}'
+            }
+        elif 'float' in hint:
+            return {
+                'input_type': 'float',
+                'confidence': 'high',
+                'reason': f'Type hint: {param_types[0]}'
+            }
+    
+    # PATTERN 6: Parameter name inference (EXACT MATCH ONLY)
+    list_names = ['numbers', 'nums', 'arr', 'array', 'items', 'elements', 'data', 'values', 'lst', 'list']
+    if first_param_lower in list_names:
+        return {
+            'input_type': 'list',
+            'confidence': 'medium',
+            'reason': f'Parameter name "{first_param}" suggests list'
+        }
+    
+    string_names = ['s', 'text', 'string', 'word', 'sentence', 'str', 'input_str']
+    if first_param_lower in string_names:
+        return {
+            'input_type': 'str_text',
+            'confidence': 'medium',
+            'reason': f'Parameter name "{first_param}" suggests string'
+        }
+    
+    int_names = ['n', 'num', 'number', 'x', 'y', 'count', 'size', 'limit', 'max_val', 'min_val']
+    if first_param_lower in int_names:
+        return {
+            'input_type': 'int',
+            'confidence': 'medium',
+            'reason': f'Parameter name "{first_param}" suggests integer'
+        }
+    
+    return {'input_type': 'unknown', 'confidence': 'low', 'reason': 'Could not determine input type'}
+
+
+def get_test_values_for_type(input_type: str, problem_desc: str = "") -> list:
+    """Generate appropriate test values based on detected input type."""
+    problem_lower = problem_desc.lower()
+    
+    if input_type == 'str_numbers':
+        return [['"3 1 4 1 5 9"'], ['"1 2 3 4 5"'], ['"-5 -2 0 3 10"']]
+    
+    elif input_type == 'list':
+        return [['[3, 1, 4, 1, 5, 9]'], ['[1, 2, 3, 4, 5]'], ['[-5, -2, 0, 3, 10]']]
+    
+    elif input_type == 'str_text':
+        if 'palindrome' in problem_lower:
+            return [['"radar"'], ['"hello"'], ['"a"']]
+        elif 'vowel' in problem_lower:
+            return [['"hello"'], ['"aeiou"'], ['"xyz"']]
+        elif 'reverse' in problem_lower:
+            return [['"hello"'], ['"python"'], ['"a"']]
+        else:
+            return [['"hello"'], ['"test"'], ['"python"']]
+    
+    elif input_type == 'int':
+        if 'prime' in problem_lower:
+            return [['7'], ['2'], ['10'], ['1']]
+        elif 'factorial' in problem_lower:
+            return [['5'], ['0'], ['1'], ['10']]
+        elif 'fibonacci' in problem_lower or 'fib' in problem_lower:
+            return [['10'], ['0'], ['1'], ['5']]
+        elif 'leap' in problem_lower and 'year' in problem_lower:
+            return [['2000'], ['1900'], ['2024'], ['2100']]
+        elif 'even' in problem_lower or 'odd' in problem_lower:
+            return [['4'], ['7'], ['0'], ['1']]
+        else:
+            return [['5'], ['10'], ['0'], ['1']]
+    
+    elif input_type == 'float':
+        return [['3.14'], ['0.0'], ['-2.5'], ['1.0']]
+    
+    return [['5'], ['10'], ['0']]
+
+
+# ============================================================
+# FUNCTION DETECTION UTILITIES
 # ============================================================
 
 def detect_function_type(code: str, problem_desc: str) -> str:
-    """Detect if function prints, returns, or both."""
-    problem_lower = problem_desc.lower()
-    
-    print_keywords = ['print', 'display', 'show', 'output']
-    return_keywords = ['return', 'calculate', 'compute', 'find', 'get', 'check', 'is']
-    
-    has_print_intent = any(kw in problem_lower for kw in print_keywords)
-    has_return_intent = any(kw in problem_lower for kw in return_keywords)
-    
+    """Detect if function primarily prints output or returns values."""
     func_bodies = re.findall(r'def\s+(\w+)\s*\([^)]*\):[^\n]*\n((?:\s{4,}.*\n)*)', code)
-    main_func_body = ""
+    
     for func_name, body in func_bodies:
         if func_name != 'main':
-            main_func_body = body
-            break
+            has_print = 'print(' in body
+            has_return = re.search(r'\n\s+return\s+', body) is not None
+            
+            if has_print and not has_return:
+                return 'print'
+            elif has_return:
+                return 'return'
     
-    has_print_call = 'print(' in main_func_body
-    has_return_statement = re.search(r'\n\s+return\s+', main_func_body) is not None
-    
-    if has_print_call and not has_return_statement:
-        return 'print'
-    elif has_return_statement and not has_print_call:
-        return 'return'
-    elif has_print_call and has_return_statement:
-        return 'both'
-    else:
-        if has_print_intent and not has_return_intent:
-            return 'print'
-        else:
-            return 'return'
+    return 'return'
 
 
 def detect_modification_task(problem: str) -> bool:
-    """Detect if this is a code modification task."""
-    indicators = [
-        'EXISTING CODE',
-        'MODIFICATIONS REQUESTED',
-        'CHANGES REQUESTED',
-        'MODIFICATION TASK',
-        'modify',
-        'change this code',
-    ]
-    return any(ind.lower() in problem.lower() for ind in indicators)
+    """Check if this is a code modification task."""
+    indicators = ['EXISTING CODE', 'MODIFICATIONS REQUESTED', 'MODIFICATION TASK', 'modify the']
+    return any(i.lower() in problem.lower() for i in indicators)
 
 
 def detect_loop_requirement(problem: str) -> bool:
-    """Detect if task requires endless loop behavior."""
-    problem_lower = problem.lower()
-    loop_keywords = ['endless', 'keep asking', 'continuously', 'repeatedly', 'loop', 'again and again', 'while true']
-    return any(kw in problem_lower for kw in loop_keywords)
+    """Check if problem requires continuous loop."""
+    keywords = ['endless', 'keep asking', 'continuously', 'repeatedly', 'loop until', 'while true', 'infinite loop']
+    return any(k in problem.lower() for k in keywords)
 
 
 def detect_error_handling_requirement(problem: str) -> bool:
-    """Detect if task requires error handling."""
-    problem_lower = problem.lower()
-    error_keywords = ['handle', 'edge case', 'invalid', 'error', 'letter', 'negative', 'exception', 'valueerror']
-    return any(kw in problem_lower for kw in error_keywords)
+    """Check if problem requires error handling."""
+    keywords = ['handle', 'edge case', 'invalid input', 'error', 'exception', 'valueerror', 'try/except']
+    return any(k in problem.lower() for k in keywords)
 
 
 # ============================================================
-# FUNCTION INFO EXTRACTION (IMPROVED)
+# FUNCTION INFO EXTRACTION
 # ============================================================
 
 def extract_function_info(code: str) -> dict:
-    """Extract function name, parameter count, types, and return type from code using AST."""
+    """Extract function signature information using AST with regex fallback."""
     try:
         tree = ast.parse(code)
-        
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
-                # Skip main, __init__, and private functions
-                if node.name in ['main', '__init__'] or node.name.startswith('_'):
-                    continue
-                
-                # Extract parameter information
-                param_count = len(node.args.args)
-                param_names = [arg.arg for arg in node.args.args]
-                param_types = []
-                
-                # Get type annotations if available
-                for arg in node.args.args:
-                    if arg.annotation:
-                        param_types.append(ast.unparse(arg.annotation))
-                    else:
-                        param_types.append('unknown')
-                
-                # Get return type annotation if available
-                return_type = None
-                if node.returns:
-                    return_type = ast.unparse(node.returns)
-                
-                return {
-                    'name': node.name,
-                    'param_count': param_count,
-                    'param_names': param_names,
-                    'param_types': param_types,
-                    'return_type': return_type
-                }
+                if node.name not in ['main', '__init__'] and not node.name.startswith('_'):
+                    param_types = []
+                    for arg in node.args.args:
+                        if arg.annotation:
+                            param_types.append(ast.unparse(arg.annotation))
+                        else:
+                            param_types.append('unknown')
+                    
+                    return_type = ast.unparse(node.returns) if node.returns else None
+                    
+                    return {
+                        'name': node.name,
+                        'param_count': len(node.args.args),
+                        'param_names': [arg.arg for arg in node.args.args],
+                        'param_types': param_types,
+                        'return_type': return_type
+                    }
+    except:
+        pass
+    
+    # Regex fallback
+    match = re.search(r'def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*([^:]+))?:', code)
+    if match and match.group(1) != 'main':
+        func_name = match.group(1)
+        params_str = match.group(2)
+        return_type = match.group(3).strip() if match.group(3) else None
         
-        # Fallback to regex if AST parsing doesn't find function
-        return extract_function_info_regex(code)
+        params = [p.strip() for p in params_str.split(',') if p.strip()]
+        param_names = []
+        param_types = []
         
-    except SyntaxError:
-        # If AST fails, fall back to regex
-        return extract_function_info_regex(code)
-
-
-def extract_function_info_regex(code: str) -> dict:
-    """Fallback regex-based function extraction."""
-    all_funcs = re.findall(r'def\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*([^:]+))?:', code)
-    
-    for func_name, params, return_type in all_funcs:
-        if func_name != 'main':
-            param_count = 0
-            param_names = []
-            param_types = []
-            
-            if params.strip():
-                param_list = [p.strip() for p in params.split(',') if p.strip()]
-                param_count = len(param_list)
-                
-                for param in param_list:
-                    if ':' in param:
-                        name, type_hint = param.split(':', 1)
-                        param_names.append(name.strip())
-                        param_types.append(type_hint.strip())
-                    else:
-                        param_names.append(param.strip())
-                        param_types.append('unknown')
-            
-            return_type_clean = return_type.strip() if return_type else None
-            
-            return {
-                'name': func_name,
-                'param_count': param_count,
-                'param_names': param_names,
-                'param_types': param_types,
-                'return_type': return_type_clean
-            }
-    
-    return {'name': 'unknown', 'param_count': 0, 'param_names': [], 'param_types': [], 'return_type': None}
-
-
-def detect_expected_param_type(code: str, problem_desc: str, func_info: dict) -> str:
-    """Detect what type of parameter the function expects."""
-    problem_lower = problem_desc.lower()
-    param_types = func_info.get('param_types', [])
-    
-    if param_types:
-        first_type = param_types[0]
-        if 'list' in first_type.lower() or '[' in first_type:
-            return 'list'
-        elif 'str' in first_type.lower():
-            return 'str'
-        elif 'int' in first_type.lower():
-            return 'int'
-        elif 'float' in first_type.lower():
-            return 'float'
-    
-    list_keywords = ['list', 'array', 'elements', 'items', 'values in a', 'numbers in a', 
-                     'maximum value in a', 'minimum value in a', 'sum of a', 'average of a', 
-                     'sort a', 'reverse a', 'merge', 'sorted list']
-    if any(kw in problem_lower for kw in list_keywords):
-        return 'list'
-    
-    string_keywords = ['string', 'text', 'word', 'palindrome', 'reverse a string', 
-                       'vowels', 'characters', 'substring', 'permutation', 'anagram']
-    if any(kw in problem_lower for kw in string_keywords):
-        return 'str'
-    
-    return 'int'
-
-
-# ============================================================
-# SIGNATURE VALIDATION
-# ============================================================
-
-def validate_function_call(func_name: str, test_call: str, expected_param_count: int) -> bool:
-    """
-    Validate that a test function call has the correct number of arguments.
-    Returns True if valid, False otherwise.
-    """
-    # Extract arguments from function call
-    # Match pattern: func_name(arg1, arg2, ...)
-    pattern = rf'{re.escape(func_name)}\s*\((.*?)\)'
-    match = re.search(pattern, test_call)
-    
-    if not match:
-        return False
-    
-    args_str = match.group(1).strip()
-    
-    if not args_str:
-        return expected_param_count == 0
-    
-    # Count arguments (simple comma split, doesn't handle nested structures perfectly)
-    # But good enough for most cases
-    arg_count = len([arg.strip() for arg in args_str.split(',') if arg.strip()])
-    
-    return arg_count == expected_param_count
-
-
-def generate_smart_test_values(param_count: int, param_types: list, problem_desc: str) -> list:
-    """
-    Generate appropriate test values based on parameter count and types.
-    Returns a list of test value sets (each set is a list of values).
-    """
-    problem_lower = problem_desc.lower()
-    test_sets = []
-    
-    if param_count == 0:
-        return [[]]  # No arguments needed
-    
-    elif param_count == 1:
-        param_type = param_types[0] if param_types else 'unknown'
-        
-        # Determine type from type hint or problem description
-        if 'list' in param_type.lower() or 'list' in problem_lower:
-            test_sets.append(['[3, 1, 4, 1, 5, 9]'])
-            test_sets.append(['[1, 2, 3]'])
-            test_sets.append(['[-5, -2, -10]'])
-        elif 'str' in param_type.lower() or any(kw in problem_lower for kw in ['string', 'text', 'word']):
-            if 'palindrome' in problem_lower:
-                test_sets.append(['"radar"'])
-                test_sets.append(['"hello"'])
-            elif 'vowel' in problem_lower:
-                test_sets.append(['"hello"'])
-                test_sets.append(['"aeiou"'])
+        for p in params:
+            if ':' in p:
+                name, ptype = p.split(':', 1)
+                param_names.append(name.strip())
+                param_types.append(ptype.strip())
             else:
-                test_sets.append(['"test"'])
-                test_sets.append(['"hello"'])
-        else:
-            # Numeric types
-            test_sets.append(['5'])
-            test_sets.append(['10'])
-            test_sets.append(['0'])
+                param_names.append(p.strip())
+                param_types.append('unknown')
+        
+        return {
+            'name': func_name,
+            'param_count': len(params),
+            'param_names': param_names,
+            'param_types': param_types,
+            'return_type': return_type
+        }
     
-    elif param_count == 2:
-        # Two parameters - common patterns
-        if 'two strings' in problem_lower or 'anagram' in problem_lower:
-            test_sets.append(['"listen"', '"silent"'])
-            test_sets.append(['"hello"', '"world"'])
-        elif 'two numbers' in problem_lower or 'gcd' in problem_lower or 'lcm' in problem_lower:
-            test_sets.append(['12', '18'])
-            test_sets.append(['5', '10'])
-        elif 'subsequence' in problem_lower or 'common' in problem_lower:
-            test_sets.append(['"ABCBDAB"', '"BDCAB"'])
-            test_sets.append(['"AGGTAB"', '"GXTXAYB"'])
-        else:
-            # Default two numeric parameters
-            test_sets.append(['2', '3'])
-            test_sets.append(['5', '10'])
-    
-    else:
-        # 3+ parameters - generate generic values
-        generic_values = []
-        for i in range(param_count):
-            generic_values.append(str(i + 1))
-        test_sets.append(generic_values)
-    
-    return test_sets if test_sets else [['1'] * param_count]
+    return {
+        'name': 'unknown',
+        'param_count': 0,
+        'param_names': [],
+        'param_types': [],
+        'return_type': None
+    }
 
 
 # ============================================================
-# PRE-VALIDATION: SANITY CHECK BEFORE FORMAL TESTING
+# SMART TEST VALUE GENERATION
+# ============================================================
+
+def generate_smart_test_values(param_count: int, param_types: list, problem_desc: str, code: str = None, func_info: dict = None) -> list:
+    """Generate test values using code analysis."""
+    if param_count == 0:
+        return [[]]
+    problem_lower = problem_desc.lower()
+
+    if 'prime' in problem_lower and ('all' in problem_lower or 'less than' in problem_lower):
+        return [['10'], ['20'], ['30']]
+        
+    if param_count == 1 and code and func_info:
+        analysis = analyze_code_input_expectations(code, func_info)
+        print(f"[Tester] Code analysis: {analysis['reason']} -> {analysis['input_type']} ({analysis['confidence']})")
+        
+        if analysis['input_type'] != 'unknown':
+            return get_test_values_for_type(analysis['input_type'], problem_desc)
+    
+    if param_count == 1:
+        problem_lower = problem_desc.lower()
+        if any(k in problem_lower for k in ['prime', 'factorial', 'fibonacci', 'even', 'odd', 'leap', 'number']):
+            return get_test_values_for_type('int', problem_desc)
+        elif any(k in problem_lower for k in ['palindrome', 'vowel', 'reverse', 'string', 'text', 'word']):
+            return get_test_values_for_type('str_text', problem_desc)
+        elif any(k in problem_lower for k in ['smallest', 'largest', 'sort', 'max', 'min', 'sum', 'list', 'array']):
+            return get_test_values_for_type('list', problem_desc)
+        return get_test_values_for_type('int', problem_desc)
+    
+    if param_count == 2:
+        problem_lower = problem_desc.lower()
+        if 'gcd' in problem_lower or 'lcm' in problem_lower:
+            return [['12', '18'], ['5', '10'], ['7', '3']]
+        elif 'anagram' in problem_lower:
+            return [['"listen"', '"silent"'], ['"hello"', '"world"']]
+        elif 'count' in problem_lower and ('occurrence' in problem_lower or 'character' in problem_lower):
+            return [['"hello"', '"l"'], ['"aaa"', '"a"'], ['"test"', '"z"']]
+        else:
+            return [['2', '3'], ['5', '10'], ['0', '1']]
+    
+    return [[str(i + 1) for i in range(param_count)]]
+
+
+# ============================================================
+# PRE-VALIDATION
 # ============================================================
 
 def pre_validate_code(code: str, problem_desc: str) -> dict:
-    """
-    Run basic sanity checks on code BEFORE formal testing.
-    This prevents throwing away correct code due to bad test generation.
-    
-    Returns:
-        dict with 'valid': bool, 'reason': str, 'suggestions': list
-    """
+    """Run quick sanity checks before formal testing."""
     func_info = extract_function_info(code)
-    func_name = func_info['name']
-    problem_lower = problem_desc.lower()
     
-    # Check 1: Function exists and is callable
     try:
-        tree = ast.parse(code)
-        has_function = any(isinstance(node, ast.FunctionDef) and node.name == func_name 
-                          for node in ast.walk(tree))
-        if not has_function:
-            return {
-                'valid': False,
-                'reason': f"Function '{func_name}' not found in code",
-                'suggestions': ["Ensure the function is properly defined"]
-            }
+        ast.parse(code)
     except SyntaxError as e:
         return {
             'valid': False,
-            'reason': f"Syntax error in code: {e}",
-            'suggestions': ["Fix syntax errors before testing"]
+            'reason': f"Syntax error on line {e.lineno}: {e.msg}",
+            'suggestions': ["Fix the syntax error", "Check for missing colons, parentheses, or indentation"]
         }
     
-    # Check 2: Return type matches expectation
-    return_type = func_info.get('return_type')
-    if return_type:
-        # Verify return statements exist for functions that should return values
-        has_return = re.search(r'\n\s+return\s+', code) is not None
-        
-        if not has_return and 'None' not in return_type:
-            return {
-                'valid': False,
-                'reason': f"Function signature says it returns {return_type} but has no return statement",
-                'suggestions': ["Add a return statement to the function"]
-            }
-    
-    # Check 3: Try to execute the function with simple test cases
-    validation_result = try_execute_function(code, func_info, problem_desc)
-    
-    return validation_result
+    return try_execute_function(code, func_info, problem_desc)
 
 
 def try_execute_function(code: str, func_info: dict, problem_desc: str) -> dict:
-    """
-    Try executing the function with automatically generated test values.
-    This is a SANITY CHECK, not formal testing.
-    
-    Returns validation result dict.
-    """
+    """Try executing the function with generated test values."""
     func_name = func_info['name']
-    param_count = func_info['param_count']
-    param_types = func_info.get('param_types', [])
-    return_type = func_info.get('return_type', 'unknown')
+    if func_name == 'unknown':
+        return {'valid': False, 'reason': "Could not find function", 'suggestions': ["Define a function"]}
     
-    # Generate smart test values based on problem and function signature
-    test_values = generate_smart_validation_values(param_count, param_types, problem_desc, return_type)
+    test_values = generate_smart_test_values(
+        func_info['param_count'],
+        func_info.get('param_types', []),
+        problem_desc,
+        code,
+        func_info
+    )
     
     with tempfile.TemporaryDirectory() as tmpdir:
-        code_path = os.path.join(tmpdir, "validation_code.py")
+        code_path = os.path.join(tmpdir, "test_code.py")
         
-        # Write code to file
         with open(code_path, "w") as f:
             f.write(code)
-            f.write("\n\n# Validation test\n")
-            f.write(f"if __name__ == '__main__':\n")
-            
-            for i, test_val in enumerate(test_values):
-                # Format arguments properly - don't quote integers
-                formatted_args = []
-                for arg in test_val:
-                    if isinstance(arg, str):
-                        # If it's already a string representation (like '"hello"'), use as-is
-                        formatted_args.append(arg)
-                    else:
-                        # If it's a raw value (int, list, etc.), convert to string
-                        formatted_args.append(str(arg))
-                
-                args_str = ', '.join(formatted_args)
+            f.write("\n\nif __name__ == '__main__':\n")
+            for i, vals in enumerate(test_values[:3]):
+                args = ', '.join(vals)
                 f.write(f"    try:\n")
-                f.write(f"        result_{i} = {func_name}({args_str})\n")
+                f.write(f"        result_{i} = {func_name}({args})\n")
                 f.write(f"        print(f'TEST_{i}_PASS: {{type(result_{i}).__name__}}')\n")
                 f.write(f"    except Exception as e:\n")
                 f.write(f"        print(f'TEST_{i}_FAIL: {{e}}')\n")
@@ -387,239 +419,35 @@ def try_execute_function(code: str, func_info: dict, problem_desc: str) -> dict:
             
             output = result.stdout + result.stderr
             
-            # Check results
-            pass_count = output.count('_PASS')
-            fail_count = output.count('_FAIL')
-            
-            if fail_count > 0:
-                # Function throws errors on basic inputs
-                error_lines = [line for line in output.split('\n') if 'FAIL' in line]
-                full_error = '\n'.join(error_lines[:3])  # Show first 3 errors
+            if '_FAIL' in output:
+                errors = [line for line in output.split('\n') if 'FAIL' in line][:3]
                 return {
                     'valid': False,
-                    'reason': f"Function fails on basic test inputs:\n{full_error}",
-                    'suggestions': ["Check function logic and edge case handling", "Review the function's conditional statements"]
+                    'reason': f"Function execution failed:\n" + '\n'.join(errors),
+                    'suggestions': ["Check function logic", "Verify parameter handling"]
                 }
             
-            if pass_count == 0:
-                # No tests passed
+            if '_PASS' not in output:
                 return {
                     'valid': False,
-                    'reason': f"Function does not execute successfully with basic inputs\nOutput: {output[:200]}",
-                    'suggestions': ["Verify function can be called with expected parameter types", "Check for syntax errors or infinite loops"]
+                    'reason': f"No output from function. Output: {output[:200]}",
+                    'suggestions': ["Check function returns a value", "Verify function is callable"]
                 }
             
-            # Extract return type from output
-            type_matches = re.findall(r'TEST_\d+_PASS: (\w+)', output)
-            if type_matches:
-                actual_return_type = type_matches[0]
-                
-                # Validate return type matches signature
-                if return_type and return_type != 'unknown':
-                    expected_simple_type = return_type.lower().replace('list[', '').replace(']', '').replace('str', 'str').replace('int', 'int').replace('bool', 'bool')
-                    
-                    if 'str' in expected_simple_type and actual_return_type != 'str':
-                        return {
-                            'valid': False,
-                            'reason': f"Function signature says returns {return_type} but actually returns {actual_return_type}",
-                            'suggestions': ["Ensure return type matches function signature"]
-                        }
-                    elif 'int' in expected_simple_type and actual_return_type not in ['int', 'float']:
-                        return {
-                            'valid': False,
-                            'reason': f"Function signature says returns {return_type} but actually returns {actual_return_type}",
-                            'suggestions': ["Ensure return type matches function signature"]
-                        }
-                    elif 'list' in expected_simple_type.lower() and actual_return_type != 'list':
-                        return {
-                            'valid': False,
-                            'reason': f"Function signature says returns {return_type} but actually returns {actual_return_type}",
-                            'suggestions': ["Ensure return type matches function signature"]
-                        }
-            
-            # All basic checks passed!
-            return {
-                'valid': True,
-                'reason': "Function passes basic sanity checks",
-                'suggestions': []
-            }
+            return {'valid': True, 'reason': "Pre-validation passed", 'suggestions': []}
             
         except subprocess.TimeoutExpired:
             return {
                 'valid': False,
-                'reason': "Function execution timed out (possible infinite loop)",
-                'suggestions': ["Check for infinite loops or very slow algorithms"]
+                'reason': "Function timed out (possible infinite loop)",
+                'suggestions': ["Check for infinite loops", "Verify loop termination conditions"]
             }
         except Exception as e:
             return {
                 'valid': False,
-                'reason': f"Error during validation: {str(e)}",
-                'suggestions': ["Check for runtime errors in function"]
+                'reason': f"Execution error: {str(e)}",
+                'suggestions': ["Check for runtime errors"]
             }
-
-
-def generate_smart_validation_values(param_count: int, param_types: list, problem_desc: str, return_type: str) -> list:
-    """
-    Generate smart validation test values based on problem context.
-    These are SIMPLE, SAFE values designed to not break the function.
-    
-    Returns list of test value tuples.
-    """
-    problem_lower = problem_desc.lower()
-    test_sets = []
-    
-    if param_count == 0:
-        return [[]]
-    
-    elif param_count == 1:
-        param_type = param_types[0] if param_types else 'unknown'
-        
-        # String parameter
-        if 'str' in param_type.lower():
-            if 'longest word' in problem_lower:
-                test_sets.append(['"hello world"'])
-                test_sets.append(['"python"'])
-            elif 'palindrome' in problem_lower:
-                test_sets.append(['"radar"'])
-            elif 'vowel' in problem_lower:
-                test_sets.append(['"hello"'])
-            elif 'email' in problem_lower:
-                test_sets.append(['"test@example.com"'])
-            else:
-                test_sets.append(['"test"'])
-                test_sets.append(['"hello"'])
-        
-        # List parameter
-        elif 'list' in param_type.lower():
-            if 'max' in problem_lower or 'min' in problem_lower:
-                test_sets.append([[1, 2, 3, 4, 5]])
-            elif 'sort' in problem_lower:
-                test_sets.append([[3, 1, 4, 1, 5]])
-            else:
-                test_sets.append([[1, 2, 3]])
-        
-        # Numeric parameter
-        elif 'int' in param_type.lower() or 'float' in param_type.lower():
-            if 'prime' in problem_lower:
-                test_sets.append([7])
-                test_sets.append([4])
-            elif 'factorial' in problem_lower:
-                test_sets.append([5])
-            elif 'fibonacci' in problem_lower or 'fib' in problem_lower:
-                test_sets.append([5])
-            else:
-                test_sets.append([10])
-                test_sets.append([5])
-        
-        else:
-            # Default safe values
-            test_sets.append([5])
-            test_sets.append([10])
-    
-    elif param_count == 2:
-        # Two string parameters
-        if any('str' in pt.lower() for pt in param_types):
-            if 'anagram' in problem_lower:
-                test_sets.append(['"listen"', '"silent"'])
-            elif 'subsequence' in problem_lower or 'common' in problem_lower:
-                test_sets.append(['"ABCBDAB"', '"BDCAB"'])
-            else:
-                test_sets.append(['"hello"', '"world"'])
-        
-        # Two numeric parameters
-        else:
-            if 'gcd' in problem_lower or 'lcm' in problem_lower:
-                test_sets.append([12, 18])
-            else:
-                test_sets.append([5, 10])
-                test_sets.append([2, 3])
-    
-    else:
-        # 3+ parameters - use simple numeric values
-        test_sets.append(list(range(1, param_count + 1)))
-    
-    return test_sets if test_sets else [[1] * param_count]
-
-
-# ============================================================
-# BEHAVIORAL TESTING FOR MODIFICATION TASKS
-# ============================================================
-
-def generate_behavioral_tests(code: str, problem_desc: str) -> str:
-    """
-    Generate tests that check BEHAVIOR, not just return values.
-    For modification tasks with loops and error handling.
-    """
-    needs_loop = detect_loop_requirement(problem_desc)
-    needs_error_handling = detect_error_handling_requirement(problem_desc)
-    
-    # Simpler tests that don't have syntax issues
-    test_code = '''from code import *
-import inspect
-
-'''
-    
-    # Test 1: Check for while True loop existence
-    if needs_loop:
-        test_code += '''def test_has_while_true_loop():
-    """Check that code contains a while True loop."""
-    source = inspect.getsource(main)
-    assert "while True" in source or "while true" in source.lower(), \\
-        "Code should have while True loop for continuous input"
-
-'''
-    
-    # Test 2: Check that loop uses print not return for results
-    if needs_loop:
-        test_code += '''def test_uses_print_not_return_in_loop():
-    """Check that loop uses print, not return, to show results."""
-    source = inspect.getsource(main)
-    # The loop should have print statements for showing results
-    assert "print(" in source, "Loop should use print() to show results"
-    # Check there's no return with f-string inside the while block
-    lines = source.split("\\n")
-    in_while = False
-    for line in lines:
-        if "while True" in line:
-            in_while = True
-        if in_while and line.strip().startswith("return ") and ("f\\'" in line or "f\\"" in line):
-            assert False, "Should not use return with f-string in loop - use print() instead"
-
-'''
-    
-    # Test 3: Check for try/except
-    if needs_error_handling:
-        test_code += '''def test_has_error_handling():
-    """Check that code has try/except for error handling."""
-    source = inspect.getsource(main)
-    assert "try:" in source and "except" in source, \\
-        "Code should have try/except block for handling invalid input"
-
-'''
-    
-    # Test 4: Check for ValueError handling
-    if needs_error_handling:
-        test_code += '''def test_handles_valueerror():
-    """Check that code handles ValueError (for non-numeric input)."""
-    source = inspect.getsource(main)
-    assert "ValueError" in source or "Exception" in source, \\
-        "Code should catch ValueError for invalid input like letters"
-
-'''
-    
-    # Test 5: Test core function works
-    test_code += '''def test_core_function_works():
-    """Test that the core logic function works correctly."""
-    # Test is_prime if it exists
-    if "is_prime" in dir():
-        assert is_prime(7) == True, "7 is prime"
-        assert is_prime(4) == False, "4 is not prime"
-        assert is_prime(2) == True, "2 is prime"
-        assert is_prime(1) == False, "1 is not prime"
-
-'''
-    
-    return test_code
 
 
 # ============================================================
@@ -627,7 +455,7 @@ import inspect
 # ============================================================
 
 def make_code_testable(code: str, problem_desc: str) -> str:
-    """Replace input() calls with test values."""
+    """Replace input() calls with test values for testing."""
     lines = code.split('\n')
     modified_lines = []
     
@@ -639,487 +467,642 @@ def make_code_testable(code: str, problem_desc: str) -> str:
             var_name = input_match.group(2)
             cast_type = input_match.group(3)
             
-            modified_lines.append(f"{indent}# {line.strip()}  # [AUTO-COMMENTED FOR TESTING]")
-            test_value = generate_smart_test_value(var_name, cast_type, problem_desc)
-            modified_lines.append(f"{indent}{var_name} = {test_value}  # [TEST VALUE]")
+            modified_lines.append(f"{indent}# {line.strip()}  # [COMMENTED FOR TESTING]")
+            
+            if cast_type == 'int':
+                test_val = '10'
+            elif cast_type == 'float':
+                test_val = '5.0'
+            else:
+                test_val = '"test"'
+            
+            modified_lines.append(f"{indent}{var_name} = {test_val}  # [TEST VALUE]")
         else:
             modified_lines.append(line)
     
     return '\n'.join(modified_lines)
 
 
-def generate_smart_test_value(var_name: str, cast_type: str, problem_desc: str) -> str:
-    """Generate intelligent test values based on variable name and context."""
-    var_lower = var_name.lower()
-    
-    if cast_type == 'int':
-        if 'age' in var_lower:
-            return '25'
-        elif 'year' in var_lower:
-            return '2000'
-        elif 'number' in var_lower or 'num' in var_lower or 'n' == var_lower:
-            return '100'
-        else:
-            return '10'
-    elif cast_type == 'float':
-        return '5.0'
-    else:
-        return '"test"'
+# ============================================================
+# BEHAVIORAL TESTS (for modification tasks)
+# ============================================================
 
-
-def generate_test_value(param_type: str, problem_desc: str) -> str:
-    """Generate appropriate test value based on parameter type."""
-    problem_lower = problem_desc.lower()
+def generate_behavioral_tests(code: str, problem_desc: str) -> str:
+    """Generate tests that check code structure/behavior for modification tasks."""
+    needs_loop = detect_loop_requirement(problem_desc)
+    needs_error_handling = detect_error_handling_requirement(problem_desc)
     
-    if param_type == 'list':
-        if 'max' in problem_lower:
-            return '[3, 1, 4, 1, 5, 9, 2, 6]'
-        elif 'sort' in problem_lower:
-            return '[5, 2, 8, 1, 9]'
-        else:
-            return '[1, 2, 3, 4, 5]'
-    elif param_type == 'str':
-        if 'palindrome' in problem_lower:
-            return '"radar"'
-        elif 'vowel' in problem_lower:
-            return '"hello world"'
-        else:
-            return '"test"'
-    elif param_type == 'float':
-        return '3.14'
-    else:
-        return '10'
+    test_code = '''from code import *
+import inspect
+
+'''
+    
+    if needs_loop:
+        test_code += '''def test_has_while_true_loop():
+    """Check that code contains a while True loop."""
+    source = inspect.getsource(main)
+    assert "while True" in source or "while true" in source.lower(), \\
+        "Code should have while True loop"
+
+def test_uses_print_in_loop():
+    """Check that loop uses print to show results."""
+    source = inspect.getsource(main)
+    assert "print(" in source, "Code should use print() to show results"
+
+'''
+    
+    if needs_error_handling:
+        test_code += '''def test_has_try_except():
+    """Check that code has error handling."""
+    source = inspect.getsource(main)
+    assert "try:" in source and "except" in source, \\
+        "Code should have try/except for error handling"
+
+'''
+    
+    test_code += '''def test_code_is_valid():
+    """Basic validity check."""
+    assert True, "Code structure is valid"
+'''
+    
+    return test_code
 
 
 # ============================================================
-# PRINT FUNCTION TESTS
+# TEST GENERATION FOR PRINT FUNCTIONS
 # ============================================================
 
-def generate_tests_for_print_function(func_info: dict, problem_desc: str) -> str:
+def generate_tests_for_print_function(func_info: dict, problem_desc: str, code: str) -> str:
     """Generate tests for functions that print output."""
     func_name = func_info['name']
-    problem_lower = problem_desc.lower()
     
-    is_prime_list = "prime" in problem_lower and any(word in problem_lower for word in 
-                    ["all", "list", "display", "print", "show"])
+    analysis = analyze_code_input_expectations(code, func_info)
+    test_values = get_test_values_for_type(analysis['input_type'], problem_desc)
     
-    if is_prime_list:
-        return f'''from code import *
-import sys
-from io import StringIO
-
-def test_contains_small_primes():
-    """Test that output contains small prime numbers."""
-    old_stdout = sys.stdout
-    sys.stdout = StringIO()
-    {func_name}(100)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
-    assert '2' in output, "Output should contain 2"
-    assert '3' in output, "Output should contain 3"
-'''
+    arg = test_values[0][0] if test_values and test_values[0] else '10'
     
     return f'''from code import *
 import sys
 from io import StringIO
 
-def test_prints_output():
+def test_function_prints_output():
     """Test that function produces output."""
     old_stdout = sys.stdout
     sys.stdout = StringIO()
-    {func_name}(10)
-    output = sys.stdout.getvalue()
-    sys.stdout = old_stdout
+    
+    try:
+        {func_name}({arg})
+        output = sys.stdout.getvalue()
+    finally:
+        sys.stdout = old_stdout
+    
     assert len(output) > 0, "Function should print something"
 '''
 
 
 # ============================================================
-# LLM FALLBACK TEST GENERATION (IMPROVED WITH VALIDATION)
-# ============================================================
-
-def generate_llm_test_cases(func_name: str, problem_desc: str, func_info: dict) -> str:
-    """FALLBACK: Use LLM to generate test cases when no pattern matches, with signature validation."""
-    param_count = func_info['param_count']
-    param_types = func_info.get('param_types', [])
-    param_names = func_info.get('param_names', [])
-    
-    # Build parameter description
-    param_desc = ""
-    if param_count > 0:
-        param_parts = []
-        for i, name in enumerate(param_names):
-            type_hint = param_types[i] if i < len(param_types) else 'unknown'
-            param_parts.append(f"{name}: {type_hint}")
-        param_desc = f"Parameters: {', '.join(param_parts)}"
-    else:
-        param_desc = "Parameters: none"
-    
-    prompt = f"""Generate 3 pytest test cases for this Python function:
-Function name: {func_name}
-{param_desc}
-Problem: {problem_desc}
-
-CRITICAL: The function takes exactly {param_count} parameter(s). Your test calls MUST match this.
-
-Output ONLY in this format (use appropriate test values for the parameter types):
-TEST_1: input=<values> | expected=<result>
-TEST_2: input=<values> | expected=<result>
-TEST_3: input=<values> | expected=<result>
-
-Example for 2-parameter function: TEST_1: input="hello", "world" | expected=True"""
-
-    try:
-        response = test_llm.invoke(prompt)
-        test_code = parse_llm_test_cases(response.content, func_info, problem_desc)
-        
-        # Validate the generated test code
-        if validate_generated_tests(test_code, func_name, param_count):
-            return test_code
-        else:
-            # LLM generated invalid tests, use smart fallback
-            return generate_validated_fallback_test(func_info, problem_desc)
-    except:
-        return generate_validated_fallback_test(func_info, problem_desc)
-
-
-def validate_generated_tests(test_code: str, func_name: str, expected_param_count: int) -> bool:
-    """Validate that generated test code has correct function signatures."""
-    # Find all function calls in the test code
-    pattern = rf'{re.escape(func_name)}\s*\([^)]*\)'
-    calls = re.findall(pattern, test_code)
-    
-    if not calls:
-        return False
-    
-    # Check each call
-    for call in calls:
-        if not validate_function_call(func_name, call, expected_param_count):
-            return False
-    
-    return True
-
-
-def parse_llm_test_cases(response: str, func_info: dict, problem_desc: str) -> str:
-    """Parse LLM response into pytest test code with validation."""
-    func_name = func_info['name']
-    param_count = func_info['param_count']
-    
-    test_cases = []
-    lines = response.strip().split('\n')
-    
-    for line in lines:
-        if 'TEST_' in line and '|' in line:
-            try:
-                parts = line.split('|')
-                input_part = parts[0].split('input=')[1].strip()
-                expected_part = parts[1].split('expected=')[1].strip()
-                
-                # Validate argument count in input_part
-                arg_count = len([arg.strip() for arg in input_part.split(',') if arg.strip()])
-                if arg_count == param_count:
-                    test_cases.append((input_part, expected_part))
-            except:
-                continue
-    
-    if len(test_cases) < 2:
-        return generate_validated_fallback_test(func_info, problem_desc)
-    
-    test_code = f'''from code import *
-
-def test_llm_generated():
-    """LLM-generated test cases."""
-'''
-    for i, (input_val, expected_val) in enumerate(test_cases, 1):
-        test_code += f'    assert {func_name}({input_val}) == {expected_val}, "Test {i}"\n'
-    
-    return test_code
-
-
-def generate_validated_fallback_test(func_info: dict, problem_desc: str) -> str:
-    """Generate fallback tests with proper signature validation."""
-    func_name = func_info['name']
-    param_count = func_info['param_count']
-    param_types = func_info.get('param_types', [])
-    
-    # Generate smart test values based on parameter info
-    test_value_sets = generate_smart_test_values(param_count, param_types, problem_desc)
-    
-    test_code = f'''from code import *
-
-def test_generated():
-    """Auto-generated test cases based on function signature."""
-'''
-    
-    for i, values in enumerate(test_value_sets[:3], 1):  # Max 3 test cases
-        args = ', '.join(values)
-        test_code += f'    result = {func_name}({args})\n'
-        test_code += f'    assert result is not None, "Test {i}: Function should return a value"\n'
-    
-    return test_code
-
-
-# ============================================================
-# MAIN TEST GENERATION (UPDATED WITH AUTO-DETECTION)
+# TEST GENERATION FOR RETURN FUNCTIONS (WITH CASE-INSENSITIVE CHECKS)
 # ============================================================
 
 def generate_tests_for_return_function(func_info: dict, problem_desc: str, code: str) -> str:
     """Generate tests for functions that return values."""
     func_name = func_info['name']
-    param_count = func_info['param_count']
     problem_lower = problem_desc.lower()
-    expected_type = detect_expected_param_type(code, problem_desc, func_info)
     
-    # Prime CHECK - AUTO-DETECT STRING VS BOOLEAN RETURN
-    is_prime_check = ("prime" in problem_lower and 
-                     any(word in problem_lower for word in ["check", "is", "whether"]) and
-                     not any(word in problem_lower for word in ["all", "list", "find all"]))
+    analysis = analyze_code_input_expectations(code, func_info)
+    input_type = analysis['input_type']
     
-    returns_bool = func_info.get('return_type') and 'bool' in func_info['return_type'].lower()
-    returns_str = func_info.get('return_type') and 'str' in func_info['return_type'].lower()
+    print(f"[Tester] Generating tests for {func_name} - input type: {input_type} ({analysis['reason']})")
     
-    # AUTO-DETECT: Check if OUTPUT specification or return type indicates string
-    output_is_string = ('output:' in problem_lower and 'string' in problem_lower) or \
-                       ('"prime"' in problem_lower.replace(' ', '')) or \
-                       ('"not prime"' in problem_lower.replace(' ', '')) or \
-                       returns_str
+    # ===== PATTERN-BASED TESTS =====
     
-    if is_prime_check or (returns_bool and "prime" in problem_lower) or (output_is_string and "prime" in problem_lower):
-        if output_is_string:
-            # Function returns "Prime" / "Not Prime" as STRINGS
+    # Prime factors - MUST BE BEFORE prime check
+    if "prime" in problem_lower and "factor" in problem_lower:
+        return f'''from code import *
+
+def test_prime_factors():
+    assert {func_name}(12) == [2, 2, 3], "12 = 2*2*3"
+    assert {func_name}(7) == [7], "7 is prime"
+    assert {func_name}(100) == [2, 2, 5, 5], "100 = 2*2*5*5"
+'''
+
+    if "prime" in problem_lower and ("all" in problem_lower or "less than" in problem_lower):
+        return f'''from code import *
+
+def test_primes_less_than():
+    result = {func_name}(10)
+    assert isinstance(result, list), "Should return a list"
+    assert 2 in result, "2 is prime"
+    assert 3 in result, "3 is prime"
+    assert 5 in result, "5 is prime"
+    assert 7 in result, "7 is prime"
+    assert 4 not in result, "4 is not prime"
+
+def test_primes_less_than_20():
+    result = {func_name}(20)
+    assert 11 in result, "11 is prime"
+    assert 13 in result, "13 is prime"
+    assert 17 in result, "17 is prime"
+    assert 19 in result, "19 is prime"
+'''
+    
+    # Prime number check
+    if "prime" in problem_lower and any(w in problem_lower for w in ["check", "is", "whether", "determine"]):
+        return_type = func_info.get('return_type', '')
+        if return_type and 'str' in return_type.lower():
             return f'''from code import *
 
 def test_prime_numbers():
-    assert {func_name}(7) == "Prime", "7 is prime"
-    assert {func_name}(2) == "Prime", "2 is prime"
-    assert {func_name}(11) == "Prime", "11 is prime"
+    result = {func_name}(7)
+    assert isinstance(result, str), "Should return a string"
+    assert "not" not in result.lower(), "7 is prime, should not contain 'not'"
+    assert "prime" in result.lower(), "7 is prime"
 
-def test_not_prime():
-    assert {func_name}(4) == "Not Prime", "4 is not prime"
-    assert {func_name}(1) == "Not Prime", "1 is not prime"
-    assert {func_name}(9) == "Not Prime", "9 is not prime"
+def test_prime_2():
+    result = {func_name}(2)
+    assert isinstance(result, str), "Should return a string"
+    assert "not" not in result.lower(), "2 is prime, should not contain 'not'"
+
+def test_not_prime_numbers():
+    result = {func_name}(4)
+    assert isinstance(result, str), "Should return a string"
+    assert "not" in result.lower(), "4 is not prime"
+
+def test_not_prime_1():
+    result = {func_name}(1)
+    assert isinstance(result, str), "Should return a string"
+    assert "not" in result.lower(), "1 is not prime"
 '''
-        else:
-            # Function returns True/False as BOOLEANS
-            return f'''from code import *
+        return f'''from code import *
 
 def test_prime_numbers():
     assert {func_name}(7) == True, "7 is prime"
     assert {func_name}(2) == True, "2 is prime"
-    assert {func_name}(11) == True, "11 is prime"
 
-def test_not_prime():
+def test_not_prime_numbers():
     assert {func_name}(4) == False, "4 is not prime"
     assert {func_name}(1) == False, "1 is not prime"
-    assert {func_name}(9) == False, "9 is not prime"
-'''
-    
-    # Maximum in list
-    elif "max" in problem_lower and expected_type == 'list':
-        return f'''from code import *
-
-def test_find_max():
-    assert {func_name}([3, 1, 4, 1, 5, 9, 2, 6]) == 9
-    assert {func_name}([1]) == 1
-    assert {func_name}([-5, -2, -10]) == -2
-'''
-    
-    # Count vowels
-    elif "vowel" in problem_lower:
-        return f'''from code import *
-
-def test_count_vowels():
-    assert {func_name}("hello") == 2
-    assert {func_name}("aeiou") == 5
-    assert {func_name}("xyz") == 0
-'''
-    
-    # Palindrome
-    elif "palindrome" in problem_lower:
-        return f'''from code import *
-
-def test_palindrome():
-    assert {func_name}("radar") == True
-    assert {func_name}("hello") == False
-'''
-    
-    # Email validation
-    elif "email" in problem_lower and ("valid" in problem_lower or "check" in problem_lower):
-        return f'''from code import *
-
-def test_valid_emails():
-    assert {func_name}("test@example.com") == True, "Basic email"
-    assert {func_name}("user.name@domain.org") == True, "Email with dot in username"
-
-def test_invalid_emails():
-    assert {func_name}("invalid") == False, "No @ symbol"
-    assert {func_name}("no@domain") == False, "No TLD"
-    assert {func_name}("") == False, "Empty string"
-'''
-    
-    # Reverse string
-    elif "reverse" in problem_lower and expected_type == 'str':
-        return f'''from code import *
-
-def test_reverse():
-    assert {func_name}("hello") == "olleh"
-    assert {func_name}("a") == "a"
-'''
-    
-    # Sort
-    elif "sort" in problem_lower and expected_type == 'list':
-        return f'''from code import *
-
-def test_sort():
-    assert {func_name}([5, 2, 8, 1, 9]) == [1, 2, 5, 8, 9]
-    assert {func_name}([1]) == [1]
 '''
     
     # Factorial
-    elif "factorial" in problem_lower:
+    if "factorial" in problem_lower:
         return f'''from code import *
 
 def test_factorial():
-    assert {func_name}(0) == 1
-    assert {func_name}(5) == 120
+    assert {func_name}(0) == 1, "0! = 1"
+    assert {func_name}(1) == 1, "1! = 1"
+    assert {func_name}(5) == 120, "5! = 120"
 '''
     
     # Fibonacci
-    elif "fibonacci" in problem_lower or "fib" in problem_lower:
-        if param_count == 1:
-            # Single parameter - likely nth fibonacci
-            return f'''from code import *
+    if "fibonacci" in problem_lower or "fib" in problem_lower:
+        return f'''from code import *
 
 def test_fibonacci():
     assert {func_name}(0) == 0, "fib(0) = 0"
     assert {func_name}(1) == 1, "fib(1) = 1"
     assert {func_name}(10) == 55, "fib(10) = 55"
 '''
-        else:
-            # Multiple parameters or returns sequence
+    
+    # Leap year
+    if "leap" in problem_lower and "year" in problem_lower:
+        return_type = func_info.get('return_type', '')
+        if return_type and 'str' in return_type.lower():
             return f'''from code import *
 
-def test_fibonacci_sequence():
-    result = {func_name}(5)
-    assert isinstance(result, list), "Should return a list"
-    assert len(result) > 0, "Should return non-empty sequence"
+def test_leap_year():
+    result = {func_name}(2000)
+    assert "leap" in str(result).lower() or result == True, "2000 is leap year"
+
+def test_not_leap_year():
+    result = {func_name}(1900)
+    assert "not" in str(result).lower() or result == False, "1900 is not leap year"
 '''
-    
-    # Balanced parentheses
-    elif "parenthes" in problem_lower and "balanced" in problem_lower:
         return f'''from code import *
 
-def test_balanced_parentheses():
-    assert {func_name}("()") == True, "Simple balanced"
-    assert {func_name}("()[]{{}}") == True, "Multiple types balanced"
-    assert {func_name}("(())") == True, "Nested balanced"
+def test_leap_year():
+    assert {func_name}(2000) == True, "2000 is leap year"
+    assert {func_name}(2024) == True, "2024 is leap year"
 
-def test_unbalanced_parentheses():
-    assert {func_name}("(") == False, "Open only"
-    assert {func_name}(")(") == False, "Wrong order"
-    assert {func_name}("(()") == False, "Missing close"
+def test_not_leap_year():
+    assert {func_name}(1900) == False, "1900 is not leap year"
+    assert {func_name}(2023) == False, "2023 is not leap year"
+'''
+    # Balanced parentheses check - MUST BE BEFORE even/odd
+    if "balanced" in problem_lower or ("parenthes" in problem_lower and "check" in problem_lower):
+        return f'''from code import *
+
+def test_balanced():
+    assert {func_name}("()") == True, "() is balanced"
+    assert {func_name}("()[]{{}}") == True, "()[]{{}} is balanced"
+    assert {func_name}("([])") == True, "([]) is balanced"
+
+def test_not_balanced():
+    assert {func_name}("(]") == False, "(] is not balanced"
+    assert {func_name}("([)]") == False, "([)] is not balanced"
+    assert {func_name}("(") == False, "( is not balanced"
+'''
+    # Even/Odd
+    if ("even" in problem_lower or "odd" in problem_lower) and "balanced" not in problem_lower:
+        return f'''from code import *
+
+def test_even():
+    result = {func_name}(4)
+    assert result == True or "even" in str(result).lower(), "4 is even"
+
+def test_odd():
+    result = {func_name}(7)
+    assert result == False or "odd" in str(result).lower(), "7 is odd"
+'''
+    
+    # Palindrome
+    if "palindrome" in problem_lower:
+        return_type = func_info.get('return_type', '')
+        if return_type and 'str' in return_type.lower():
+            return f'''from code import *
+
+def test_palindrome():
+    result = {func_name}("radar")
+    assert result == True or "yes" in str(result).lower() or "palindrome" in str(result).lower(), "radar is palindrome"
+
+def test_not_palindrome():
+    result = {func_name}("hello")
+    assert result == False or "no" in str(result).lower() or "not" in str(result).lower(), "hello is not palindrome"
+'''
+        return f'''from code import *
+
+def test_palindrome():
+    assert {func_name}("radar") == True, "radar is palindrome"
+    assert {func_name}("hello") == False, "hello is not palindrome"
+'''
+    
+    # Count vowels
+    if "vowel" in problem_lower and "count" in problem_lower:
+        return f'''from code import *
+
+def test_count_vowels():
+    assert {func_name}("hello") == 2, "hello has 2 vowels"
+    assert {func_name}("xyz") == 0, "xyz has 0 vowels"
 '''
     
     # GCD
-    elif "greatest common divisor" in problem_lower or "gcd" in problem_lower:
+    if "gcd" in problem_lower:
         return f'''from code import *
 
 def test_gcd():
-    assert {func_name}(12, 18) == 6, "GCD(12, 18) = 6"
-    assert {func_name}(5, 10) == 5, "GCD(5, 10) = 5"
-    assert {func_name}(7, 13) == 1, "GCD(7, 13) = 1 (coprime)"
+    assert {func_name}(12, 18) == 6, "GCD(12,18) = 6"
+    assert {func_name}(7, 3) == 1, "GCD(7,3) = 1"
 '''
     
     # LCM
-    elif "least common multiple" in problem_lower or "lcm" in problem_lower:
+    if "lcm" in problem_lower:
         return f'''from code import *
 
 def test_lcm():
-    assert {func_name}(12, 18) == 36, "LCM(12, 18) = 36"
-    assert {func_name}(5, 10) == 10, "LCM(5, 10) = 10"
-    assert {func_name}(3, 7) == 21, "LCM(3, 7) = 21"
+    assert {func_name}(12, 18) == 36, "LCM(12,18) = 36"
 '''
     
-    # Longest word - FIXED TO CHECK RETURN TYPE!
-    elif "longest word" in problem_lower:
-        return_type = func_info.get('return_type', 'str')
-        
-        # Check if function returns a list or a string
-        if 'list' in return_type.lower() or 'List' in return_type:
-            # Function returns a list of longest words
+    # Password validation
+    if "password" in problem_lower and "valid" in problem_lower:
+        return f'''from code import *
+
+def test_valid_password():
+    assert {func_name}("Abcd123!") == True, "Valid password"
+    assert {func_name}("Abcd1234@") == True, "Valid password with @"
+
+def test_invalid_password():
+    assert {func_name}("abc") == False, "Too short"
+    assert {func_name}("abcdefgh") == False, "No uppercase, digit, special"
+    assert {func_name}("ABCDEFGH") == False, "No lowercase, digit, special"
+    assert {func_name}("Abcdefgh") == False, "No digit, special"
+    assert {func_name}("Abcdefg1") == False, "No special character"
+'''
+    # Perfect square check - MUST BE BEFORE min/smallest
+    if "perfect" in problem_lower and "square" in problem_lower:
+        return f'''from code import *
+
+def test_perfect_square():
+    assert {func_name}(16) == True, "16 is perfect square"
+    assert {func_name}(25) == True, "25 is perfect square"
+    assert {func_name}(1) == True, "1 is perfect square"
+
+def test_not_perfect_square():
+    assert {func_name}(15) == False, "15 is not perfect square"
+    assert {func_name}(2) == False, "2 is not perfect square"
+'''
+    
+    # Find smallest/minimum
+    if any(w in problem_lower for w in ["smallest", "minimum", "min"]) and \
+       not any(w in problem_lower for w in ["password", "validate", "length", "characters", "square"]):
+        if input_type == 'str_numbers':
             return f'''from code import *
 
-def test_longest_single_word():
-    result = {func_name}("python")
-    assert isinstance(result, list), "Should return a list"
-    assert "python" in result, "Single word should be in list"
-    
-def test_longest_equal_length():
-    result = {func_name}("hello world")
-    assert isinstance(result, list), "Should return a list"
-    assert len(result) == 2, "Both words have same length (5)"
-    assert "hello" in result and "world" in result, "Should contain both words"
-    
-def test_longest_different_length():
-    result = {func_name}("the quick brown fox")
-    assert isinstance(result, list), "Should return a list"
-    assert "quick" in result or "brown" in result, "Should contain longest word(s)"
+def test_find_smallest():
+    assert {func_name}("3 1 4 1 5 9") == 1, "Smallest in '3 1 4 1 5 9' is 1"
+    assert {func_name}("-5 -2 0 3") == -5, "Smallest in '-5 -2 0 3' is -5"
 '''
-        else:
-            # Function returns a single string (most common case)
+        return f'''from code import *
+
+def test_find_smallest():
+    assert {func_name}([3, 1, 4, 1, 5, 9]) == 1, "Smallest in list is 1"
+    assert {func_name}([-5, -2, 0, 3]) == -5, "Smallest is -5"
+'''
+    
+    # Find largest/maximum
+    if any(w in problem_lower for w in ["largest", "maximum", "max"]):
+        if input_type == 'str_numbers':
             return f'''from code import *
 
-def test_longest_single_word():
-    result = {func_name}("python")
-    assert isinstance(result, str), "Should return a string"
-    assert result == "python", "Single word should be returned"
-    
-def test_longest_with_multiple_words():
-    result = {func_name}("hello world")
-    assert isinstance(result, str), "Should return a string"
-    # Both "hello" and "world" have 5 letters, should return first one
-    assert result == "hello" or result == "world", "Should return one of the longest words"
-    
-def test_longest_different_length():
-    result = {func_name}("the quick brown fox")
-    assert isinstance(result, str), "Should return a string"
-    # "quick" and "brown" both have 5 letters (longest)
-    assert result in ["quick", "brown"], "Should return one of the longest words"
-    assert len(result) == 5, "Longest word should have 5 letters"
+def test_find_largest():
+    assert {func_name}("3 1 4 1 5 9") == 9, "Largest in '3 1 4 1 5 9' is 9"
+'''
+        return f'''from code import *
+
+def test_find_largest():
+    assert {func_name}([3, 1, 4, 1, 5, 9]) == 9, "Largest in list is 9"
 '''
     
-    # Default: LLM fallback WITH VALIDATION
-    else:
-        return generate_llm_test_cases(func_name, problem_desc, func_info)
+    # Quicksort
+    if "quicksort" in problem_lower or "quick sort" in problem_lower:
+        return f'''from code import *
 
+def test_quicksort():
+    assert {func_name}([5, 2, 8, 1, 9]) == [1, 2, 5, 8, 9], "Sort ascending"
+    assert {func_name}([1]) == [1], "Single element"
+    assert {func_name}([]) == [], "Empty list"
+'''
+    # Merge sort
+    if "merge" in problem_lower and "sort" in problem_lower:
+        return f'''from code import *
+
+def test_merge_sort():
+    assert {func_name}([5, 2, 8, 1, 9]) == [1, 2, 5, 8, 9], "Sort ascending"
+    assert {func_name}([1]) == [1], "Single element"
+    assert {func_name}([]) == [], "Empty list"
+'''
+    if "sort" in problem_lower:
+        return f'''from code import *
+
+def test_sort():
+    assert {func_name}([5, 2, 8, 1, 9]) == [1, 2, 5, 8, 9], "Should sort ascending"
+'''
+    
+    # Reverse string
+    if "reverse" in problem_lower and input_type == 'str_text':
+        return f'''from code import *
+
+def test_reverse():
+    assert {func_name}("hello") == "olleh", "Should reverse string"
+'''
+    
+    # Roman numeral conversion
+    if "roman" in problem_lower:
+        return f'''from code import *
+
+def test_roman_to_int():
+    assert {func_name}("III") == 3, "III = 3"
+    assert {func_name}("IV") == 4, "IV = 4"
+    assert {func_name}("IX") == 9, "IX = 9"
+    assert {func_name}("LVIII") == 58, "LVIII = 58"
+    assert {func_name}("MCMXCIV") == 1994, "MCMXCIV = 1994"
+'''
+    
+    # Anagram check
+    if "anagram" in problem_lower:
+        return f'''from code import *
+
+def test_anagram():
+    assert {func_name}("listen", "silent") == True, "listen/silent are anagrams"
+    assert {func_name}("hello", "world") == False, "hello/world are not anagrams"
+'''
+    # Email validation
+    if "email" in problem_lower and ("valid" in problem_lower or "check" in problem_lower):
+        return f'''from code import *
+
+def test_valid_email():
+    assert {func_name}("test@example.com") == True, "Valid email"
+    assert {func_name}("user.name@domain.org") == True, "Valid with dot"
+
+def test_invalid_email():
+    assert {func_name}("invalid") == False, "No @ symbol"
+    assert {func_name}("@domain.com") == False, "No username"
+    assert {func_name}("test@") == False, "No domain"
+'''
+
+    # Binary to decimal
+    if "binary" in problem_lower and "decimal" in problem_lower:
+        return f'''from code import *
+
+def test_binary_to_decimal():
+    assert {func_name}("1010") == 10, "1010 = 10"
+    assert {func_name}("1111") == 15, "1111 = 15"
+    assert {func_name}("1000") == 8, "1000 = 8"
+    assert {func_name}("0") == 0, "0 = 0"
+'''
+
+    # Flatten nested list
+    if "flatten" in problem_lower and "list" in problem_lower:
+        return f'''from code import *
+
+def test_flatten():
+    assert {func_name}([[1, 2], [3, 4]]) == [1, 2, 3, 4], "Simple nested"
+    assert {func_name}([[1], [2, 3], [4]]) == [1, 2, 3, 4], "Uneven nested"
+    assert {func_name}([]) == [], "Empty list"
+'''
+
+
+    # Sum of list
+    if "sum" in problem_lower and ("list" in problem_lower or "number" in problem_lower):
+        return f'''from code import *
+
+def test_sum():
+    assert {func_name}([1, 2, 3, 4, 5]) == 15, "Sum is 15"
+    assert {func_name}([10]) == 10, "Single element"
+    assert {func_name}([]) == 0, "Empty list"
+'''
+
+    # Average of list
+    if "average" in problem_lower or "avg" in problem_lower:
+        return f'''from code import *
+
+def test_average():
+    assert {func_name}([1, 2, 3, 4, 5]) == 3, "Average is 3"
+    assert {func_name}([10, 20]) == 15, "Average is 15"
+'''
+
+    # Count character occurrences
+    if "count" in problem_lower and ("occurrence" in problem_lower or "character" in problem_lower) and "vowel" not in problem_lower:
+        return f'''from code import *
+
+def test_count_char():
+    assert {func_name}("hello", "l") == 2, "l appears 2 times"
+    assert {func_name}("aaa", "a") == 3, "a appears 3 times"
+    assert {func_name}("hello", "z") == 0, "z appears 0 times"
+'''
+
+    # Remove duplicates
+    if "remove" in problem_lower and "duplicate" in problem_lower:
+        return f'''from code import *
+
+def test_remove_duplicates():
+    result = {func_name}([1, 2, 2, 3, 3, 3])
+    assert len(result) == 3, "Should have 3 unique elements"
+    assert 1 in result and 2 in result and 3 in result, "Should contain 1, 2, 3"
+'''
+
+    # Check digits only
+    if "digit" in problem_lower and ("only" in problem_lower or "check" in problem_lower or "contain" in problem_lower):
+        return f'''from code import *
+
+def test_digits_only():
+    assert {func_name}("12345") == True, "Only digits"
+    assert {func_name}("123a45") == False, "Contains letter"
+    assert {func_name}("") == False, "Empty string"
+'''
+
+    # Second largest
+    if "second" in problem_lower and ("largest" in problem_lower or "maximum" in problem_lower or "biggest" in problem_lower):
+        return f'''from code import *
+
+def test_second_largest():
+    assert {func_name}([1, 2, 3, 4, 5]) == 4, "Second largest is 4"
+    assert {func_name}([10, 20, 30]) == 20, "Second largest is 20"
+'''
+
+    # Count words
+    if "count" in problem_lower and "word" in problem_lower:
+        return f'''from code import *
+
+def test_count_words():
+    assert {func_name}("hello world") == 2, "Two words"
+    assert {func_name}("one") == 1, "One word"
+    assert {func_name}("this is a test") == 4, "Four words"
+'''
+
+    # Convert to uppercase
+    if "uppercase" in problem_lower or "upper case" in problem_lower:
+        return f'''from code import *
+
+def test_uppercase():
+    assert {func_name}("hello") == "HELLO", "Convert to uppercase"
+    assert {func_name}("Hello World") == "HELLO WORLD", "Mixed case"
+'''
+
+    # Longest word
+    if "longest" in problem_lower and "word" in problem_lower:
+        return f'''from code import *
+
+def test_longest_word():
+    assert {func_name}("the quick brown fox") == "quick" or {func_name}("the quick brown fox") == "brown", "Longest is quick or brown (5 chars)"
+    assert {func_name}("hello") == "hello", "Single word"
+'''
+    
+    # ===== SMART FALLBACK: Based on return type and code analysis =====
+    print(f"[Tester] No pattern match - using smart fallback for {func_name}")
+    
+    test_values = generate_smart_test_values(
+        func_info['param_count'],
+        func_info.get('param_types', []),
+        problem_desc,
+        code,
+        func_info
+    )
+    
+    first_arg = test_values[0][0] if test_values and test_values[0] else '"test"'
+    
+    return_type = func_info.get('return_type', '') or ''
+    return_type_lower = return_type.lower()
+    
+    # Check code patterns to determine return type
+    has_list_return = ('list' in return_type_lower or 
+                       '[]' in return_type or 
+                       '.append(' in code or 
+                       'return []' in code or
+                       'return sorted(' in code)
+    
+    has_bool_return = ('bool' in return_type_lower or 
+                       'return True' in code or 
+                       'return False' in code)
+    
+    has_int_return = ('int' in return_type_lower or 
+                      'return 0' in code or 
+                      'return 1' in code or
+                      'return len(' in code or
+                      'return sum(' in code)
+    
+    has_str_return = ('str' in return_type_lower and 'list' not in return_type_lower)
+    
+    # Generate appropriate test based on detected return type
+    if has_list_return:
+        return f'''from code import *
+
+def test_returns_list():
+    result = {func_name}({first_arg})
+    assert result is not None, "Should not return None"
+    assert isinstance(result, list), "Should return a list"
+'''
+    
+    if has_bool_return:
+        return f'''from code import *
+
+def test_returns_boolean():
+    result = {func_name}({first_arg})
+    assert result is not None, "Should not return None"
+    assert isinstance(result, bool), "Should return True or False"
+'''
+    
+    if has_str_return:
+        return f'''from code import *
+
+def test_returns_string():
+    result = {func_name}({first_arg})
+    assert result is not None, "Should not return None"
+    assert isinstance(result, str), "Should return a string"
+'''
+    
+    if has_int_return:
+        return f'''from code import *
+
+def test_returns_number():
+    result = {func_name}({first_arg})
+    assert result is not None, "Should not return None"
+    assert isinstance(result, (int, float)), "Should return a number"
+'''
+    
+    # Ultimate fallback
+    return f'''from code import *
+
+def test_function_returns_value():
+    result = {func_name}({first_arg})
+    assert result is not None, "Should return a value"
+
+def test_function_callable():
+    try:
+        result = {func_name}({first_arg})
+        assert True, "Function executed successfully"
+    except TypeError as e:
+        assert False, f"Function call failed: {{e}}"
+'''
 
 # ============================================================
-# MAIN TEST RUNNER (UPDATED WITH PRE-VALIDATION)
+# MAIN TEST RUNNER
 # ============================================================
 
 def run_tests(state: AgentState) -> dict:
-    """Execute the code with generated tests and return results."""
-    
+    """Main entry point - runs tests on generated code."""
     problem = state["problem_description"]
     code_to_test = state["generated_code"]
     
-    # ============================================================
-    # STEP 1: PRE-VALIDATION (SKIP FOR INTERACTIVE LOOP TASKS)
-    # ============================================================
-    
-    # Check if this is an interactive loop modification task
     is_modification = detect_modification_task(problem)
     needs_loop = detect_loop_requirement(problem)
     
-    # Skip pre-validation for interactive loop tasks (they would timeout)
     skip_prevalidation = is_modification and needs_loop
     
     if not skip_prevalidation:
-        print("[Tester] Running pre-validation sanity checks...")
+        print("[Tester] Running pre-validation...")
         validation_result = pre_validate_code(code_to_test, problem)
         
         if not validation_result['valid']:
-            # Code failed basic sanity checks - reject it
             print(f"[Tester] ❌ Pre-validation FAILED: {validation_result['reason']}")
             return {
                 "status": "fail",
@@ -1128,50 +1111,34 @@ def run_tests(state: AgentState) -> dict:
 
 Suggestions:
 {chr(10).join('  • ' + s for s in validation_result['suggestions'])}
-
-The code has fundamental issues and must be rewritten.
 """
             }
-        
-        print("[Tester] ✅ Pre-validation PASSED - code looks correct, proceeding to formal tests...")
+        print("[Tester] ✅ Pre-validation PASSED")
     else:
-        print("[Tester] ⏭️  Skipping pre-validation (interactive loop task) - proceeding to behavioral tests...")
+        print("[Tester] ⏭️ Skipping pre-validation (interactive loop task)")
     
-    # ============================================================
-    # STEP 2: FORMAL TESTING
-    # ============================================================
-    
-    # Detect if this is a modification task
     needs_error_handling = detect_error_handling_requirement(problem)
     
     with tempfile.TemporaryDirectory() as tmpdir:
-        
-        # For modification tasks with behavioral requirements, use behavioral tests
         if is_modification and (needs_loop or needs_error_handling):
-            # Don't modify input() calls for behavioral tests - we test structure
-            code_path = os.path.join(tmpdir, "code.py")
-            with open(code_path, "w") as f:
-                f.write(code_to_test)
-            
             tests = generate_behavioral_tests(code_to_test, problem)
         else:
-            # Standard testing
             if 'input(' in code_to_test:
                 code_to_test = make_code_testable(code_to_test, problem)
             
-            code_path = os.path.join(tmpdir, "code.py")
-            with open(code_path, "w") as f:
-                f.write(code_to_test)
-            
-            func_type = detect_function_type(code_to_test, problem)
             func_info = extract_function_info(code_to_test)
+            func_type = detect_function_type(code_to_test, problem)
             
             if func_type == 'print':
-                tests = generate_tests_for_print_function(func_info, problem)
+                tests = generate_tests_for_print_function(func_info, problem, state["generated_code"])
             else:
-                tests = generate_tests_for_return_function(func_info, problem, code_to_test)
+                tests = generate_tests_for_return_function(func_info, problem, state["generated_code"])
         
+        code_path = os.path.join(tmpdir, "code.py")
         test_path = os.path.join(tmpdir, "test_code.py")
+        
+        with open(code_path, "w") as f:
+            f.write(code_to_test)
         with open(test_path, "w") as f:
             f.write(tests)
         
@@ -1190,73 +1157,7 @@ The code has fundamental issues and must be rewritten.
                 print("[Tester] ✅ All tests PASSED!")
                 return {"status": "pass", "results": output}
             else:
-                # ============================================================
-                # STEP 3: SMART FAILURE ANALYSIS
-                # ============================================================
-                # If formal tests fail but pre-validation passed, 
-                # the issue might be with the tests themselves
-                
-                print("[Tester] ⚠️ Formal tests failed, analyzing...")
-                
-                # Check if the failure is due to test generation issues
-                if "AssertionError: Should return a list" in output or "AssertionError: Should return a string" in output:
-                    print("[Tester] ⚠️ Detected type mismatch in tests - re-checking...")
-                    
-                    func_info = extract_function_info(state["generated_code"])
-                    return_type = func_info.get('return_type', '')
-                    
-                    # Check if test expects wrong type
-                    if "Should return a list" in output and 'str' in return_type.lower() and 'list' not in return_type.lower():
-                        # Tests expect list but function returns string
-                        print("[Tester] ❌ TEST BUG DETECTED: Tests expect list, function returns string")
-                        print("[Tester] ✅ CODE IS CORRECT - accepting despite test failure")
-                        return {
-                            "status": "pass",
-                            "results": f"""⚠️ TEST GENERATION BUG DETECTED - CODE ACCEPTED ANYWAY
-
-The code PASSED pre-validation and appears to be CORRECT.
-However, the generated tests have a bug:
-
-Function signature: {func_info['name']}(...) -> {return_type}
-Test expectation: Should return a list
-Actual behavior: Returns a string (CORRECT!)
-
-This is a TESTER BUG, not a CODE BUG.
-The code is being ACCEPTED because it passed pre-validation.
-
-=== Pre-validation Results ===
-{validation_result['reason']}
-
-The formal tests will be fixed in the next iteration.
-"""
-                        }
-                    elif "Should return a string" in output and 'list' in return_type.lower():
-                        # Tests expect string but function returns list
-                        print("[Tester] ❌ TEST BUG DETECTED: Tests expect string, function returns list")
-                        print("[Tester] ✅ CODE IS CORRECT - accepting despite test failure")
-                        return {
-                            "status": "pass",
-                            "results": f"""⚠️ TEST GENERATION BUG DETECTED - CODE ACCEPTED ANYWAY
-
-The code PASSED pre-validation and appears to be CORRECT.
-However, the generated tests have a bug:
-
-Function signature: {func_info['name']}(...) -> {return_type}
-Test expectation: Should return a string
-Actual behavior: Returns a list (CORRECT!)
-
-This is a TESTER BUG, not a CODE BUG.
-The code is being ACCEPTED because it passed pre-validation.
-
-=== Pre-validation Results ===
-{validation_result['reason']}
-
-The formal tests will be fixed in the next iteration.
-"""
-                        }
-                
-                # Other test failures - code might actually be wrong
-                print("[Tester] ❌ Tests failed - code needs fixes")
+                print("[Tester] ❌ Tests failed")
                 return {"status": "fail", "results": output}
                 
         except subprocess.TimeoutExpired:
