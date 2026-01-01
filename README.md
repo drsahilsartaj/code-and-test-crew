@@ -38,9 +38,17 @@ Commands you'll use daily. **Copy-paste ready!**
 
 ### Start the Application (Docker Setup)
 ```bash
-./start.sh                    # Start Ollama in Docker container
-source genai/bin/activate     # Activate Python environment
-python main.py                # Run the application (use python3 if outside venv)
+cd code-generation-crew          # Go to project folder
+./start.sh                       # Start Ollama (Docker)
+source genai/bin/activate        # Activate Python environment
+python main.py                   # Run the app (use python3 if outside venv)
+```
+### If using Local Ollama (not Docker)
+```bash
+cd code-generation-crew
+ollama serve &                   # Start Ollama (background)
+source genai/bin/activate
+python main.py
 ```
 
 ### Stop the Application
@@ -630,12 +638,9 @@ If code fails:
 
 ### 3. Smart Test Generation
 Automatically creates pytest tests:
-```python
-# For: "create a function that finds primes less than n"
-def test_finds_primes():
-    assert find_primes(10) == [2, 3, 5, 7]
-    assert find_primes(2) == []
-```
+- **35 pre-defined patterns** for common programming tasks
+- **Smart fallback** analyzes code to detect return types
+- **Intelligent input type detection** based on code analysis
 
 ### 4. Non-Blocking Flake8
 Style issues are reported but don't block workflow:
