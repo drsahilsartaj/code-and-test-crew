@@ -575,6 +575,9 @@ def generate_tests_for_return_function(func_info: dict, problem_desc: str, code:
     print(f"[Tester] Generating tests for {func_name} - input type: {input_type} ({analysis['reason']})")
     
     # ===== PATTERN-BASED TESTS =====
+
+    is_check_task = any(w in problem_lower for w in ["check if", "is prime", "whether", "determine if", "is a prime"])
+    is_all_primes = any(w in problem_lower for w in ["all prime", "all primes", "find all", "primes less", "primes under", "primes below", "primes smaller"])
     
     # Prime factors - MUST BE BEFORE prime check
     if "prime" in problem_lower and "factor" in problem_lower:
@@ -586,7 +589,7 @@ def test_prime_factors():
     assert {func_name}(100) == [2, 2, 5, 5], "100 = 2*2*5*5"
 '''
 
-    if "prime" in problem_lower and ("all" in problem_lower or "less than" in problem_lower):
+    if "prime" in problem_lower and is_all_primes and not is_check_task:
         return f'''from code import *
 
 def test_primes_less_than():
